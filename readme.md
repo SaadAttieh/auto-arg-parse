@@ -11,8 +11,11 @@
 *  Arbitrary nesting, flags may themselves have mandatory and optional flags/arguments,
 *  Exclusive constraint on mandatory/optional flags
 * Type safe user defined conversions from string input to required type,
-*  Built in conversion for ints, more to come soon 
+*  Built in conversion for ints, more to come soon
+
+
 ##Coming soon
+
 *  Variable number of arguments,
 *  More built in conversions (other number formats, file path->stream conversion, etc.)
 *  Validation of user define constraints, separate from those specified in the type conversion.
@@ -21,7 +24,8 @@
 #Example Usage
 
 ##Code
-````
+
+````c++
 #include<iostream>
 #include "autoArgParse/argParser.h"
 using namespace std;
@@ -77,7 +81,9 @@ int main(const int argc, const char** argv) {
     }
 }
 ````
+
 ##Output:
+
 After each error, the full usage information is printed out.  This has only been shown once.
 
 ```

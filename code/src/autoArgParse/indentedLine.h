@@ -3,15 +3,10 @@
 #include <iostream>
 namespace AutoArgParse {
 class IndentedLine {
-public:
+   public:
     int indentLevel;
-    IndentedLine(int level) :
-            indentLevel(level) {
-
-    }
-    IndentedLine() :
-            indentLevel(0) {
-    }
+    IndentedLine(int level) : indentLevel(level) {}
+    IndentedLine() : indentLevel(0) {}
 
     inline void forcePrintIndent(std::ostream& os) const {
         for (int i = 0; i < indentLevel; i++) {
@@ -20,12 +15,11 @@ public:
     }
 
     friend inline std::ostream& operator<<(std::ostream& os,
-            const IndentedLine & indent) {
+                                           const IndentedLine& indent) {
         os << "\n";
         indent.forcePrintIndent(os);
         return os;
     }
-
 };
 }
 #endif /* AUTOARGPARSE_INDENTEDLINE_H_ */

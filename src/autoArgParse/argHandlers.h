@@ -6,7 +6,7 @@
 #include <string>
 namespace AutoArgParse {
 struct ErrorMessage : public std::exception {
-    const std::string& message;
+    const std::string message;
     ErrorMessage(const std::string& message) : message(message) {}
 };
 /**
@@ -30,8 +30,7 @@ struct Reveal {};
 be specialised.
 */
 template <typename T>
-struct Converter {
-};
+struct Converter {};
 
 template <>
 struct Converter<std::string> {
@@ -74,6 +73,50 @@ struct Converter<int> {
 template <typename T>
 struct Constraint {
     inline void operator()(const T&) const {}
+};
+/**
+ * Class for chaining multiple constraints together, allowing multiple
+ * constraints to be attached to one arg.
+ */
+template <typename... Constraints>
+class ConstraintChain {
+    const std::tuple<Constraints...> constraints;
+    ConstraintChain(const Constraints&... constraintsIn)
+        : constraints(std::tie(constraintsIn...)) {}
+    template <std::size_t I = 0, typename T>
+    inline typename std::enable_if<I == sizeof...(Constraints), void>::type
+    operator()(const T&) {}
+
+    template <std::size_t I = 0, typename T>
+        inline typename std::enable_if <
+        I<sizeof...(Constraints), void>::type operator()(const T& parsedValue) {
+        std::get<I>(constraints)(parsedValue);
+        operator()(I + 1, parsedValue);
+    }
+};
+
+/**
+ * Integer range constraint
+ */
+class IntRange {
+   public:
+    const int min, max;
+    const bool minInclusive, maxInclusive;
+    IntRange(int min, int max, bool minInclusive, bool maxInclusive)
+        : min(min),
+          max(max),
+          minInclusive(minInclusive),
+          maxInclusive(maxInclusive) {}
+    void operator()(int parsedValue) const {
+        int testMin = (minInclusive) ? min : min + 1;
+        int testMax = (maxInclusive) ? max : max - 1;
+        if (parsedValue < testMin || parsedValue > testMax) {
+            throw ErrorMessage("Expected value to be between " + std::to_string(min) +
+                    ((minInclusive) ? "(inclusive)" : "(exclusive") + " and " +
+                    std::to_string(max) +
+                    ((maxInclusive) ? "(inclusive)" : "(exclusive)") + ".");
+        }
+    }
 };
 }
 

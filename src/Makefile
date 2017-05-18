@@ -1,6 +1,6 @@
 
 CC = g++
-CFLAGS = -O3 -std=c++14 -Wextra -Wall 
+CFLAGS = -g -O0 -std=c++14 -Wextra -Wall 
 outFile = testProg
 OBJS =  objs/autoArgParse/argParser.o  objs/exampleUsage.o 
 

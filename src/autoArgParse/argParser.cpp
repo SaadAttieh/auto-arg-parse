@@ -5,41 +5,6 @@
 using namespace std;
 using namespace AutoArgParse;
 
-template <>
-function<string(const string&, string&)>
-AutoArgParse::getArgConverter<string>() {
-    return [](const string& argStr, string& dest) -> string {
-
-        dest = argStr;
-        return "";
-    };
-}
-
-template <>
-function<string(const string&, int&)> AutoArgParse::getArgConverter<int>() {
-    return [](const string& argStr, int& dest) -> string {
-        dest = 0;
-        bool negated = false;
-        auto stringIter = argStr.begin();
-        if (*stringIter == '-') {
-            negated = true;
-            ++stringIter;
-        }
-        while (stringIter != argStr.end() && *stringIter >= '0' &&
-               *stringIter <= '9') {
-            dest = (dest * 10) + (*stringIter - '0');
-            ++stringIter;
-        }
-        if (stringIter != argStr.end()) {
-            return "Could not interpret \"" + argStr + "\" as an integer.";
-        }
-        if (negated) {
-            dest = -dest;
-        }
-        return "";
-    };
-}
-
 void AutoArgParse::ComplexFlag::parse(ArgIter& first, ArgIter& last) {
     int numberParsedMandatoryFlags = 0;
     int numberParsedMandatoryArgs = 0;
@@ -244,7 +209,12 @@ void AutoArgParse::ArgParser::printAllUsageInfo(
     printUsageHelp(os);
     os << endl;
 }
-void AutoArgParse::throwConversionException(const string& arg,
-                                            const string& additionalExpl) {
-    throw ConversionException(arg, additionalExpl);
+
+void AutoArgParse::throwFailedArgConversionException(
+    const std::string& name, const std::string& additionalExpl) {
+    throw FailedArgConversionException(name, additionalExpl);
+}
+void AutoArgParse::throwFailedArgConstraintException(
+    const std::string& name, const std::string& additionalExpl) {
+    throw FailedArgConstraintException(name, additionalExpl);
 }

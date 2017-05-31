@@ -24,15 +24,21 @@ auto& slow = speedFlag.add<Flag>("slow", Policy::MANDATORY, "");
 auto& medium = speedFlag.add<Flag>("medium", Policy::MANDATORY, "");
 auto& fast = speedFlag.add<ComplexFlag>(
     "fast", Policy::MANDATORY,
-    "If fast is selected, an option of ignoring safety rules is available.");
+    "If fast is selected, an optional speed limit may be specified.");
 // fast is a complex flag to allow further nesting, see below
+
 auto forceExclusive = speedFlag.makeExclusive("slow", "medium", "fast");
+
 // let's add a nested flag, a limit to how fast we can go
 // We wwill use a constraint to insure the integer is within the correct range
 auto& fastLimit =
     fast.add<ComplexFlag>("--limit", Policy::OPTIONAL, "Limit the top speed.");
-auto& fastLimitValue = fastLimit.add<Arg<int>>("speed_limit", Policy::MANDATORY,
-                                               "An integer with range 0..50", chain(Converter<int>(), IntRange(0,50,true,true)));
+auto& fastLimitValue = fastLimit.add<Arg<int>>(
+    "speed_limit", Policy::MANDATORY, "An integer with range 0..50",
+    chain(Converter<int>(), IntRange(0, 50, true, true)));
+// The above line chains together the conversion from string to int followed by
+// the constraint on the integer.
+// Any number of conversions or constraints may be chained together.
 
 int main(const int argc, const char** argv) {
     argParser.validateArgs(argc, argv);

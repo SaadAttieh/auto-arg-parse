@@ -50,7 +50,7 @@ Successfully parsed:  ./testProg
 ...
 ```
 
-##Nesting, add nested but exclusive flags
+## Nesting, add nested but exclusive flags
 ### Code:
 ```c++
 
@@ -74,7 +74,7 @@ Successfully parsed:  ./testProg --speed
 ...
 ```
 
-##Optional integer argument, type safe conversion automatically handled
+## Optional integer argument, type safe conversion automatically handled
 ### Code:
 ```c++
 //A limit to how fast we can go
@@ -92,7 +92,7 @@ Could not interpret "fudge" as an integer.
 ...
 ```
 
-##Add Constraint to integer argument:
+## Add Constraint to integer argument:
 ### Code: modified from above
 ```c++
 auto& fastLimitValue = fastLimit.add<Arg<int>>(
@@ -111,7 +111,7 @@ Error: Could not parse argument: speed_limit
 Expected value to be between 0(inclusive) and 50(inclusive).
 ```
 
-##Validating all flags:
+## Validating all flags:
 ### Code:
 ```c++
 int main(const int argc, const char** argv) {
@@ -139,7 +139,7 @@ Arguments:
 
 ```
 
-##Testing optional flags after validation:
+## Testing optional flags after validation:
 ### Code:
 ```c++
     if (powerFlag) {

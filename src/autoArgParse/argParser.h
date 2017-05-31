@@ -81,26 +81,27 @@ typedef std::unique_ptr<Flag> FlagPtr;
 typedef std::unordered_map<std::string, FlagPtr> FlagMap;
 typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
 
-// forward decls of functions that throw exceptions, cannot include parseException.h in this file due to circular dependencies
-void throwFailedArgConversionException(const std::string& name, const std::string& additionalExpl);
-void throwFailedArgConstraintException(const std::string& name, const std::string& additionalExpl);
+// forward decls of functions that throw exceptions, cannot include
+// parseException.h in this file due to circular dependencies
+void throwFailedArgConversionException(const std::string& name,
+                                       const std::string& additionalExpl);
 
-template <typename T, typename ConverterFunc = DefaultDoNothingHandler,
-          typename ConstraintFunc = DefaultDoNothingHandler>
+template <typename T, typename ConverterFunc = DefaultDoNothingHandler>
 class Arg : public ArgBase {
    public:
     typedef T ValueType;
 
    private:
     T parsedValue;
-    const ConverterFunc& convert;
-    const ConstraintFunc& testConstraint;
+    ConverterFunc convert;
 
    protected:
     virtual inline void parse(ArgIter& first, ArgIter&) {
         _parsed = false;
         try {
             convert(*first, parsedValue);
+            ++first;
+            _parsed = true;
         } catch (ErrorMessage& e) {
             if (this->policy == Policy::MANDATORY) {
                 throwFailedArgConversionException(this->name, e.message);
@@ -108,27 +109,12 @@ class Arg : public ArgBase {
                 return;
             }
         }
-        try {
-            testConstraint(parsedValue);
-        } catch (ErrorMessage& e) {
-            if (this->policy == Policy::MANDATORY) {
-                throwFailedArgConstraintException(this->name, e.message);
-            } else {
-                return;
-            }
-        }
-
-        ++first;
-        _parsed = true;
     }
 
    public:
     Arg(const std::string& name, const Policy policy,
-        const std::string& description, const ConverterFunc& convert,
-        const ConstraintFunc& testConstraint)
-        : ArgBase(name, policy, description),
-          convert(convert),
-          testConstraint(testConstraint) {}
+        const std::string& description, ConverterFunc convert)
+        : ArgBase(name, policy, description), convert(std::move(convert)) {}
 
     T& get() { return parsedValue; }
 };
@@ -220,37 +206,33 @@ class ComplexFlag : public Flag {
             static_cast<FlagType*>(flagInsertionOrder.back()->second.get()));
     }
 
-    template <typename ArgType, typename ConverterFunc, typename ConstraintFunc,
+    template <typename ArgType, typename ConverterFunc,
               typename ArgValueType = typename ArgType::ValueType>
-    typename std::enable_if<
-        std::is_base_of<ArgBase, ArgType>::value,
-        Arg<ArgValueType, ConverterFunc, ConstraintFunc>&>::type
+    typename std::enable_if<std::is_base_of<ArgBase, ArgType>::value,
+                            Arg<ArgValueType, ConverterFunc>&>::type
     add(const std::string& name, const Policy policy,
-        const std::string& description, const ConverterFunc& convert,
-        const ConstraintFunc& testConstraint) {
+        const std::string& description, ConverterFunc&& convert) {
         this->args.emplace_back(
-            std::make_unique<Arg<ArgValueType, ConverterFunc, ConstraintFunc>>(
-                name, policy, description, convert, testConstraint));
+            std::make_unique<Arg<ArgValueType, ConverterFunc>>(
+                name, policy, description,
+                std::forward<ConverterFunc>(convert)));
         if (this->args.back()->policy == Policy::MANDATORY) {
             _numberMandatoryArgs++;
         } else {
             _numberOptionalArgs++;
         }
-        return *(static_cast<Arg<ArgValueType, ConverterFunc, ConstraintFunc>*>(
+        return *(static_cast<Arg<ArgValueType, ConverterFunc>*>(
             this->args.back().get()));
     }
 
     template <typename ArgType,
               typename ArgValueType = typename ArgType::ValueType>
     typename std::enable_if<std::is_base_of<ArgBase, ArgType>::value,
-                            Arg<ArgValueType, Converter<ArgValueType>,
-                                Constraint<ArgValueType>>&>::type
+                            Arg<ArgValueType, Converter<ArgValueType>>&>::type
     add(const std::string& name, const Policy policy,
         const std::string& description) {
         return add<ArgType>(name, policy, description,
-                            Converter<ArgValueType>(),
-                            Constraint<ArgValueType>());
-        {}
+                            AutoArgParse::Converter<ArgValueType>());
     }
 
     template <typename... Strings>

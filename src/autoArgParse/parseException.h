@@ -53,8 +53,7 @@ enum ParseFailureReason {
     MISSING_MANDATORY_ARG,
     UNEXPECTED_ARG,
     MORE_THAN_ONE_EXCLUSIVE_ARG,
-    FAILED_ARG_CONVERSION,
-    FAILED_ARG_CONSTRAINT
+    FAILED_ARG_CONVERSION
 };
 
 class ParseException : public std::exception {
@@ -176,23 +175,6 @@ class FailedArgConversionException : public ParseException {
     FailedArgConversionException(const std::string& argName,
                                  const std::string& additionalExpl)
         : ParseException(FAILED_ARG_CONVERSION,
-                         makeErrorMessage(argName, additionalExpl)),
-          argName(argName),
-          additionalExpl(additionalExpl) {}
-    static std::string makeErrorMessage(const std::string& argName,
-                                        const std::string& additionalExpl) {
-        return "Could not parse argument: " + argName + "\n" + additionalExpl +
-               "\n";
-    }
-};
-
-class FailedArgConstraintException : public ParseException {
-   public:
-    const std::string argName;
-    const std::string additionalExpl;
-    FailedArgConstraintException(const std::string& argName,
-                                 const std::string& additionalExpl)
-        : ParseException(FAILED_ARG_CONSTRAINT,
                          makeErrorMessage(argName, additionalExpl)),
           argName(argName),
           additionalExpl(additionalExpl) {}

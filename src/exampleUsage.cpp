@@ -31,10 +31,8 @@ auto forceExclusive = speedFlag.makeExclusive("slow", "medium", "fast");
 // We wwill use a constraint to insure the integer is within the correct range
 auto& fastLimit =
     fast.add<ComplexFlag>("--limit", Policy::OPTIONAL, "Limit the top speed.");
-IntRange range(0, 50, true, true);
 auto& fastLimitValue = fastLimit.add<Arg<int>>("speed_limit", Policy::MANDATORY,
-                                               "An integer with range 0..50",
-                                               Converter<int>(), range);
+                                               "An integer with range 0..50", chain(Converter<int>(), IntRange(0,50,true,true)));
 
 int main(const int argc, const char** argv) {
     argParser.validateArgs(argc, argv);

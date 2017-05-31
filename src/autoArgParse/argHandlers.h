@@ -1,5 +1,5 @@
 /**This file contains types required for handling arguments.  Including parsing
- * string into types, destructor for parsed types, constraints on types, etc.*/
+ strings into types and constraints on types.*/
 
 #ifndef AUTOARGPARSE_ARGHANDLERS_H_
 #define AUTOARGPARSE_ARGHANDLERS_H_
@@ -70,31 +70,36 @@ struct Converter<int> {
 /**
  * Default constraint on arguments, i.e. no constraint.
  */
-template <typename T>
-struct Constraint {
-    inline void operator()(const T&) const {}
-};
+
 /**
- * Class for chaining multiple constraints together, allowing multiple
- * constraints to be attached to one arg.
+ * Class for chaining multiple converterstogether, allowing multiple
+ * converters or constraints to be attached to one arg.
  */
-template <typename... Constraints>
-class ConstraintChain {
-    const std::tuple<Constraints...> constraints;
-    ConstraintChain(const Constraints&... constraintsIn)
-        : constraints(std::tie(constraintsIn...)) {}
+template <typename... ConverterChain>
+class Chain {
+    std::tuple<ConverterChain...> converterChain;
+
+   public:
+    Chain(ConverterChain&&... converterChainIn)
+        : converterChain(std::forward<ConverterChain>(converterChainIn)...) {}
+
     template <std::size_t I = 0, typename T>
-    inline typename std::enable_if<I == sizeof...(Constraints), void>::type
-    operator()(const T&) {}
+    inline typename std::enable_if<I == sizeof...(ConverterChain), void>::type
+    operator()(const std::string&, T&) {}
 
     template <std::size_t I = 0, typename T>
         inline typename std::enable_if <
-        I<sizeof...(Constraints), void>::type operator()(const T& parsedValue) {
-        std::get<I>(constraints)(parsedValue);
-        operator()(I + 1, parsedValue);
+        I<sizeof...(ConverterChain), void>::type operator()(
+            const std::string& stringToParse, T& parsedValue) {
+        std::get<I>(converterChain)(stringToParse, parsedValue);
+        operator()<I + 1>(stringToParse, parsedValue);
     }
 };
 
+template <typename... Converters>
+auto chain(Converters&&... converters) {
+    return Chain<Converters...>(std::forward<Converters>(converters)...);
+}
 /**
  * Integer range constraint
  */
@@ -107,14 +112,15 @@ class IntRange {
           max(max),
           minInclusive(minInclusive),
           maxInclusive(maxInclusive) {}
-    void operator()(int parsedValue) const {
+    void operator()(const std::string&, int parsedValue) const {
         int testMin = (minInclusive) ? min : min + 1;
         int testMax = (maxInclusive) ? max : max - 1;
         if (parsedValue < testMin || parsedValue > testMax) {
-            throw ErrorMessage("Expected value to be between " + std::to_string(min) +
-                    ((minInclusive) ? "(inclusive)" : "(exclusive") + " and " +
-                    std::to_string(max) +
-                    ((maxInclusive) ? "(inclusive)" : "(exclusive)") + ".");
+            throw ErrorMessage(
+                "Expected value to be between " + std::to_string(min) +
+                ((minInclusive) ? "(inclusive)" : "(exclusive") + " and " +
+                std::to_string(max) +
+                ((maxInclusive) ? "(inclusive)" : "(exclusive)") + ".");
         }
     }
 };

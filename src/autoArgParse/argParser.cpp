@@ -214,7 +214,3 @@ void AutoArgParse::throwFailedArgConversionException(
     const std::string& name, const std::string& additionalExpl) {
     throw FailedArgConversionException(name, additionalExpl);
 }
-void AutoArgParse::throwFailedArgConstraintException(
-    const std::string& name, const std::string& additionalExpl) {
-    throw FailedArgConstraintException(name, additionalExpl);
-}

@@ -1,11 +1,11 @@
-#Auto Arg Parse 
-#Fast and easy C++ argument parser 
+# Auto Arg Parse 
+# Fast and easy C++ argument parser 
 
 * Automatic validation of program arguments,
 *  Automatic generation of usage instructions,
 *  Type safe conversion from string input to desired type.
 
-##Features
+## Features
 *  Validation of mandatory and optional arguments,
 *  Validation of mandatory and optional flags,
 *  Arbitrary nesting, flags may themselves have mandatory and optional flags or arguments,
@@ -14,7 +14,7 @@
 *  Make a set of flags exclusive,
 
 
-##Coming soon
+## Coming soon
 
 *  Variable number of arguments,
 *  More built in conversions (other number formats, file path->stream conversion, etc.)

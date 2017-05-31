@@ -160,7 +160,7 @@ Arguments:
 ```
 
 
-#Implementation:
+# Implementation:
 auto-arg-parse is designed with the aim of allowing a __correct__ input to be validated as quick as possible.  This has the cost of making the process of printing errors/usage instructions less efficient.  More specifically, some data structures which may have sped up the printing of usage instructions (e.g. additional sets/maps) have not been used as these would have slowed down the construction of the argument parser.  However, since the usual procedure after detecting an invalid set of arguments is to exit the program, it was decided that fast processing of valid input was more important.
 
 This section TBC

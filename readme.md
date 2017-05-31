@@ -22,7 +22,7 @@
 
 #Example Usage
 
-##Setting up:
+## Setting up:
 
 ```c++
 #include <iostream>
@@ -33,15 +33,15 @@ using namespace AutoArgParse;
 ArgParser argParser;
 ```
 
-##Mandatory flag
-###Code
+## Mandatory flag
+### Code
 ```
 // Let's Add a mandatory flag speed
 auto& speedFlag = argParser.add<ComplexFlag>("--speed", Policy::MANDATORY,
                                              "Specify the speed limit.");
 ```
 
-###Output:
+### Output:
 
 ```
 $./testProg 
@@ -51,7 +51,7 @@ Successfully parsed:  ./testProg
 ```
 
 ##Nesting, add nested but exclusive flags
-###Code:
+### Code:
 ```c++
 
 // Add three exclusive flags, fast, medium slow
@@ -66,7 +66,7 @@ auto& fast = speedFlag.add<ComplexFlag>(
 auto forceExclusive = speedFlag.makeExclusive("slow", "medium", "fast");
 ```
 
-###Output:
+### Output:
 ```
 $./testProg --speed fast slow
 Error: The following arguments are exclusive and may not be used in conjunction: fast|medium|slow
@@ -75,7 +75,7 @@ Successfully parsed:  ./testProg --speed
 ```
 
 ##Optional integer argument, type safe conversion automatically handled
-###Code:
+### Code:
 ```c++
 //A limit to how fast we can go
 auto& fastLimit =
@@ -84,7 +84,7 @@ auto& fastLimitValue = fastLimit.add<Arg<int>>(
     "speed_limit", Policy::MANDATORY, "An integer");
 ```
 
-###Output:
+### Output:
 ```
 $./testProg  --speed  fast --limit fudge 
 Error: Could not parse argument: speed_limit
@@ -93,7 +93,7 @@ Could not interpret "fudge" as an integer.
 ```
 
 ##Add Constraint to integer argument:
-###Code: modified from above
+### Code: modified from above
 ```c++
 auto& fastLimitValue = fastLimit.add<Arg<int>>(
     "speed_limit", Policy::MANDATORY, "An integer with range 0..50",
@@ -104,7 +104,7 @@ auto& fastLimitValue = fastLimit.add<Arg<int>>(
 // Any number of conversions or constraints may be chained together.
 ```
 
-###Output:
+### Output:
 ```
 $ ./testProg  -p 3 --speed fast --limit  -5
 Error: Could not parse argument: speed_limit
@@ -112,13 +112,13 @@ Expected value to be between 0(inclusive) and 50(inclusive).
 ```
 
 ##Validating all flags:
-###Code:
+### Code:
 ```c++
 int main(const int argc, const char** argv) {
     argParser.validateArgs(argc, argv);
 }
 ```
-###Output:
+### Output:
 If no errors, the program proceeds, otherwise, the program exits and prints the following to stderr.
 
 Taken from code src/exampleUsage.cpp
@@ -140,7 +140,7 @@ Arguments:
 ```
 
 ##Testing optional flags after validation:
-###Code:
+### Code:
 ```c++
     if (powerFlag) {
         int power = powerArg.get();

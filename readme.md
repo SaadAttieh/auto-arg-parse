@@ -240,7 +240,94 @@ int main(const int argc, const char** argv) {
 ```
 
 
-# Implementation:
-auto-arg-parse is designed with the aim of allowing a __correct__ input to be validated as quick as possible.  This has the cost of making the process of printing errors/usage instructions less efficient.  More specifically, some data structures which may have sped up the printing of usage instructions (e.g. additional sets/maps) have not been used as these would have slowed down the construction of the argument parser.  However, since the usual procedure after detecting an invalid set of arguments is to exit the program, it was decided that fast processing of valid input was more important.
+# Implementation FAQ:
 
-This section TBC
+
+##Speed:
+The aim has been to make the validation of correct input fast.  Sometimes, this leads to slower error reporting. However, since finding an error usually leads to the program exiting, preference is given to speeding up the validating of valid input.  It is however still very doubtful that any speed differences will ever be noticed.
+
+## Memory management:
+
+*  As long as the `ArgParser` object is in scope, all flags and arguments shall remain constructed.  
+* You should __never__ need to copy or copy-initialise a flag or argument object. Only maintain references where possible.  e.g. `auto& arg = ...` not `auto arg = ...`  
+* You need not maintain a reference to a `flag`, `ComplexFlag` or  `Arg` object unless you wish to query its status. e.g. 
+*     Test if an optional flag has been used,
+*     Retrieve the value given as an argument.
+*  This is therefore legal and sometimes recommended. 
+    ```
+    auto& someArg = argParser.add<ComplexFlag>("--flag", Policy::OPTIONAL, "")
+    .add<Arg<int>>("someArg", Policy::MANDATORY, "");
+    ```
+    Since `someArg` is a mandatory argument on `--flag`, you can test if a value for `someArg` exists by testing, `if (someArg)`.  You need not test the flag itself, though that is of course up to you.
+
+## Constructors and  Copy Constructors:
+The argument types must be default constructible.  It need not be copyable.  If you are getting an error due to a missing copy constructor, first check that you are not copy-initialising arguments (`auto& arg = ...` not `auto arg = ...`).  If you are still getting an error, please report it as a bug.
+
+## Built-in and User Defined Converters:
+
+So far, parsing args of type `Arg<int>` or `Arg<std::string>` require no further work, they will trigger built-in converters.
+
+
+However, if you wish to parse an argument of an unsupported type, you have two options:
+
+The simplest option is to provide a fourth argument to the add<Arg<NewType>>() method, an object (e.g. lambda) that implements:
+```
+void operator()(const std::sotring& stringArgToParse, NewType& parsedValue);
+```
+In this function:
+* `Newtype& parsedValue` has been default constructed and represents the parsed value.
+* `const std::string& stringToParse` is the string argument given at the command line.
+* You signal an error by calling `throw ErrorMessage("error here")`.  
+
+Here is an example of parsing a  string file path into an fstream  object, reporting an error if the file does not exist:
+```c++
+auto& file = argParser.add<Arg<std::fstream>>(
+    "file_path", Policy::MANDATORY, "Path to an existing file.",
+    [](const std::string& arg, std::fstream& stream) {
+        stream.open(arg);
+        if (!stream.good()) {
+            throw ErrorMessage("File " + arg + " does not exist.");
+        }
+    });
+```
+
+Alternatively, you may provide a default converter for all instances of `Arg<NewType>` by specialising the Converter object within the AutoArgParse namespace.
+
+ ```
+namespace AutoArgParse {
+template <> struct Converter<NewType> {
+	inline void operator()(const std::string& stringToParse,
+			NewType& parsedValue) {
+		...
+	}
+}
+}
+```
+
+## Built-in and User Defined Constraints:
+
+
+User defined constraints are specified exactly in the same method as converters (see above).  This allows constraints to be tested before or after parsing the string into the argument type, which ever is more efficient/convenient.  A satisfied constraint need not perform any additional actions But they may report an error via the same method as Converters `throw ErrorMessage("error message here");`.  So far, the `IntRange` constraint has been provided as a built-in (see end of section on chaining), more are coming soon.
+
+## Chaining multiple converters or constraints together:
+
+You may wish to apply multiple constraints to an argument, or perhaps apply a conversion followed by a constraint.  You can do this by calling the `Auto'ArgParse::chain(...)` function.  Below is an example where we use the built in conversion to int followed by a lambda function to verify that the int is within the correct range.
+
+```c++
+auto& intArg = argParser.add<Arg<int>>(
+    "some_int", Policy::MANDATORY, "description",
+    chain(Converter<int>(),
+    [](const std::string& arg, int& value) {
+        if (value < 0 || value > 50) {
+            throw ErrorMessage("Integer is out of range.");
+        }
+    }));
+```
+
+For convenience an IntRange constraint has already been added:
+
+```c++
+auto& intArg = argParser.add<Arg<int>>(
+    "some_int", Policy::MANDATORY, "description",
+    chain(Converter<int>(), IntRange(0,50,true,true)));
+```

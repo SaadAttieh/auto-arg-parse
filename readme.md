@@ -20,7 +20,7 @@
 *  More built in conversions (other number formats, file path->stream conversion, etc.)
 
 
-#Example Usage
+# Example Usage
 
 ## Setting up:
 ### Code:
@@ -62,7 +62,7 @@ Successfully parsed:  ./testProg
 
 ## Optional flag 
 ### Code:
-````c++
+```c++
 // Let's add an optional flag -p for power
 auto& powerFlag =
     argParser.add<Flag>("-p", Policy::OPTIONAL, "Use power.");

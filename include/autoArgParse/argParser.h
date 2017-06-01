@@ -175,7 +175,9 @@ class ComplexFlag : public Flag {
         return exclusiveFlags;
     }
 
-    const auto& getFlagInsertionOrder() const { return flagInsertionOrder; }
+    const std::deque<FlagMap::iterator>& getFlagInsertionOrder() const {
+        return flagInsertionOrder;
+    }
     inline int numberMandatoryArgs() { return _numberMandatoryArgs; }
 
     inline int numberOptionalArgs() { return _numberOptionalArgs; }
@@ -192,8 +194,8 @@ class ComplexFlag : public Flag {
     typename std::enable_if<std::is_base_of<Flag, FlagType>::value,
                             FlagType&>::type
     add(const std::string& flag, const Args&... args) {
-        auto added = flags.insert(
-            std::make_pair(flag, std::make_unique<FlagType>(args...)));
+        auto added = flags.insert(std::make_pair(
+            flag, std::unique_ptr<FlagType>(new FlagType(args...))));
         if (added.first->second->policy == Policy::MANDATORY) {
             _numberMandatoryFlags++;
         } else {
@@ -213,9 +215,10 @@ class ComplexFlag : public Flag {
     add(const std::string& name, const Policy policy,
         const std::string& description, ConverterFunc&& convert) {
         this->args.emplace_back(
-            std::make_unique<Arg<ArgValueType, ConverterFunc>>(
-                name, policy, description,
-                std::forward<ConverterFunc>(convert)));
+            std::unique_ptr<Arg<ArgValueType, ConverterFunc>>(
+                new Arg<ArgValueType, ConverterFunc>(
+                    name, policy, description,
+                    std::forward<ConverterFunc>(convert))));
         if (this->args.back()->policy == Policy::MANDATORY) {
             _numberMandatoryArgs++;
         } else {

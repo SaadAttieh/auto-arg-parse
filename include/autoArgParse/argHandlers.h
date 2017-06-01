@@ -97,7 +97,7 @@ class Chain {
 };
 
 template <typename... Converters>
-auto chain(Converters&&... converters) {
+Chain<Converters...> chain(Converters&&... converters) {
     return Chain<Converters...>(std::forward<Converters>(converters)...);
 }
 /**

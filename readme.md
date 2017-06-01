@@ -162,6 +162,34 @@ Successfully parsed:  ./testProg --speed
 ...
 ```
 
+## Add user defined constraint to argument
+### Code:
+```
+
+auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::MANDATORY,
+                                            "Read the specified file.");
+//passing a lambda function which validates the argument.
+auto& file = fileFlag.add<Arg<std::fstream>>(
+    "file_path", Policy::MANDATORY, "Path to an existing file.",
+    [](const std::string& arg, std::fstream& stream) {
+        stream.open(arg);
+        if (!stream.good()) {
+            throw ErrorMessage("File " + arg + " does not exist.");
+        }
+    });
+
+```
+
+### Output:
+```
+$ ./testProg  --file fudge_file 
+Error: Could not parse argument: file_path
+File fudge_file does not exist.
+
+Successfully parsed:  ./testProg --file
+...
+```
+
 ## Usage information:
 ### Code:
 If an error is reported, the usage information is printed out.  Otherwise, the information can be manually printed:

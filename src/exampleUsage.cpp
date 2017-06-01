@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include "autoArgParse/argParser.h"
 using namespace std;
@@ -26,6 +27,16 @@ auto& medium = speedFlag.add<Flag>("medium", Policy::MANDATORY, "");
 auto& fast = speedFlag.add<Flag>("fast", Policy::MANDATORY, "");
 auto forceExclusive = speedFlag.makeExclusive("slow", "medium", "fast");
 
+auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::MANDATORY,
+                                            "Read the specified file.");
+auto& file = fileFlag.add<Arg<std::fstream>>(
+    "file_path", Policy::MANDATORY, "Path to an existing file.",
+    [](const std::string& arg, std::fstream& stream) {
+        stream.open(arg);
+        if (!stream.good()) {
+            throw ErrorMessage("File " + arg + " does not exist.");
+        }
+    });
 int main(const int argc, const char** argv) {
     argParser.validateArgs(argc, argv);
     // the above will print an error and exit if not all arguments were

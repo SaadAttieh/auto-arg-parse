@@ -243,7 +243,7 @@ int main(const int argc, const char** argv) {
 # Implementation FAQ:
 
 
-##Speed:
+## Speed:
 The aim has been to make the validation of correct input fast.  Sometimes, this leads to slower error reporting. However, since finding an error usually leads to the program exiting, preference is given to speeding up the validating of valid input.  It is however still very doubtful that any speed differences will ever be noticed.
 
 ## Memory management:

@@ -1,11 +1,19 @@
+#ifndef argparser_cpp__8c26fbe7712048ea9f54d80ab26f1864
+#define argparser_cpp__8c26fbe7712048ea9f54d80ab26f1864 1
+
 #include "argParser.h"
 #include <stdexcept>
 #include "parseException.h"
 
-using namespace std;
-using namespace AutoArgParse;
+#if AUTOARGPARSE_HEADER_ONLY
+#define AUTOARGPARSE_INLINE inline
+#else
+#define AUTOARGPARSE_INLINE /* NO-OP */
+#endif
 
-void AutoArgParse::ComplexFlag::parse(ArgIter& first, ArgIter& last) {
+namespace AutoArgParse {
+
+AUTOARGPARSE_INLINE void ComplexFlag::parse(ArgIter& first, ArgIter& last) {
     int numberParsedMandatoryFlags = 0;
     int numberParsedMandatoryArgs = 0;
     while (first != last) {
@@ -39,8 +47,8 @@ void AutoArgParse::ComplexFlag::parse(ArgIter& first, ArgIter& last) {
     _parsed = true;
 }
 
-bool AutoArgParse::ComplexFlag::tryParseArg(ArgIter& first, ArgIter& last,
-                                            Policy& foundArgPolicy) {
+AUTOARGPARSE_INLINE bool ComplexFlag::tryParseArg(ArgIter& first, ArgIter& last,
+                                                  Policy& foundArgPolicy) {
     for (auto& argPtr : args) {
         if (argPtr->parsed()) {
             continue;
@@ -54,8 +62,9 @@ bool AutoArgParse::ComplexFlag::tryParseArg(ArgIter& first, ArgIter& last,
     return false;
 }
 
-bool AutoArgParse::ComplexFlag::tryParseFlag(ArgIter& first, ArgIter& last,
-                                             Policy& foundFlagPolicy) {
+AUTOARGPARSE_INLINE bool ComplexFlag::tryParseFlag(ArgIter& first,
+                                                   ArgIter& last,
+                                                   Policy& foundFlagPolicy) {
     auto flagIter = flags.find(*first);
     if (flagIter != end(flags)) {
         if (flagIter->second->parsed()) {
@@ -78,9 +87,11 @@ bool AutoArgParse::ComplexFlag::tryParseFlag(ArgIter& first, ArgIter& last,
     }
 }
 
-typedef pair<const string, FlagPtr> FlagMapping;
-void printFlag(ostream& os, const FlagMapping& flag,
-               unordered_set<string>& printed, const string& prefix = " ") {
+typedef std::pair<const std::string, FlagPtr> FlagMapping;
+
+AUTOARGPARSE_INLINE void printFlag(std::ostream& os, const FlagMapping& flag,
+                                   std::unordered_set<std::string>& printed,
+                                   const std::string& prefix = " ") {
     if (!printed.count(flag.first)) {
         os << prefix;
         if (flag.second->policy == Policy::OPTIONAL) {
@@ -95,9 +106,9 @@ void printFlag(ostream& os, const FlagMapping& flag,
     }
 }
 
-void AutoArgParse::ComplexFlag::invokePrintFlag(
-    ostream& os, const FlagMapping& flagMapping,
-    unordered_set<string>& printed) const {
+AUTOARGPARSE_INLINE void ComplexFlag::invokePrintFlag(
+    std::ostream& os, const FlagMapping& flagMapping,
+    std::unordered_set<std::string>& printed) const {
     if (printed.count(flagMapping.first)) {
         return;
     }
@@ -119,8 +130,9 @@ void AutoArgParse::ComplexFlag::invokePrintFlag(
     os << " ";
 }
 
-void AutoArgParse::ComplexFlag::printUsageSummary(ostream& os) const {
-    unordered_set<string> printed;
+AUTOARGPARSE_INLINE void ComplexFlag::printUsageSummary(
+    std::ostream& os) const {
+    std::unordered_set<std::string> printed;
     for (auto& flagMappingIter : flagInsertionOrder) {
         invokePrintFlag(os, *flagMappingIter, printed);
     }
@@ -136,10 +148,11 @@ void AutoArgParse::ComplexFlag::printUsageSummary(ostream& os) const {
     }
 }
 
-void AutoArgParse::Flag::printUsageHelp(ostream&, IndentedLine&) const {}
+AUTOARGPARSE_INLINE void Flag::printUsageHelp(std::ostream&,
+                                              IndentedLine&) const {}
 
-void AutoArgParse::ComplexFlag::printUsageHelp(ostream& os,
-                                               IndentedLine& lineIndent) const {
+AUTOARGPARSE_INLINE void ComplexFlag::printUsageHelp(
+    std::ostream& os, IndentedLine& lineIndent) const {
     lineIndent.indentLevel++;
     lineIndent.forcePrintIndent(os);
 
@@ -149,7 +162,7 @@ void AutoArgParse::ComplexFlag::printUsageHelp(ostream& os,
             if (argPtr->policy == Policy::OPTIONAL) {
                 os << " [optional]";
             }
-            cout << ": " << argPtr->description << lineIndent;
+            std::cout << ": " << argPtr->description << lineIndent;
         }
     }
 
@@ -169,16 +182,20 @@ void AutoArgParse::ComplexFlag::printUsageHelp(ostream& os,
     lineIndent.indentLevel--;
 }
 
-void AutoArgParse::ArgParser::printSuccessfullyParsed(
-    ostream& os, const char** argv, const int numberSuccessfullyParsed) const {
+AUTOARGPARSE_INLINE void ArgParser::printSuccessfullyParsed(
+    std::ostream& os, const char** argv,
+    const int numberSuccessfullyParsed) const {
     for (int i = 0; i < numberSuccessfullyParsed; i++) {
         os << " " << argv[i];
     }
 }
 
-void AutoArgParse::ArgParser::validateArgs(const int argc, const char** argv,
-                                           bool handleError) {
-    vector<string> args(argv + 1, argv + argc);
+AUTOARGPARSE_INLINE void ArgParser::validateArgs(const int argc,
+                                                 const char** argv,
+                                                 bool handleError) {
+    std::vector<std::string> args(argv + 1, argv + argc);
+    using std::begin;
+    using std::end;
     auto first = begin(args);
     auto last = end(args);
     try {
@@ -186,31 +203,34 @@ void AutoArgParse::ArgParser::validateArgs(const int argc, const char** argv,
         if (first != last) {
             throw UnexpectedArgException(*first, *this);
         }
-        numberArgsSuccessfullyParsed = distance(first, last) + 1;
+        numberArgsSuccessfullyParsed = std::distance(first, last) + 1;
     } catch (ParseException& e) {
-        numberArgsSuccessfullyParsed = distance(first, last) + 1;
+        numberArgsSuccessfullyParsed = std::distance(first, last) + 1;
         if (!handleError) {
             throw;
         }
-        cerr << "Error: " << e.what() << endl;
-        cerr << "Successfully parsed: ";
-        printSuccessfullyParsed(cerr, argv);
-        cerr << "\n\n";
-        printAllUsageInfo(cerr, argv[0]);
+        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "Successfully parsed: ";
+        printSuccessfullyParsed(std::cerr, argv);
+        std::cerr << "\n\n";
+        printAllUsageInfo(std::cerr, argv[0]);
         exit(1);
     }
 }
 
-void AutoArgParse::ArgParser::printAllUsageInfo(
-    ostream& os, const string& programName) const {
+AUTOARGPARSE_INLINE void ArgParser::printAllUsageInfo(
+    std::ostream& os, const std::string& programName) const {
     os << "Usage: " << programName;
     printUsageSummary(os);
     os << "\n\nArguments:\n";
     printUsageHelp(os);
-    os << endl;
+    os << std::endl;
 }
 
-void AutoArgParse::throwFailedArgConversionException(
+AUTOARGPARSE_INLINE void throwFailedArgConversionException(
     const std::string& name, const std::string& additionalExpl) {
     throw FailedArgConversionException(name, additionalExpl);
 }
+
+} /* namespace AutoArgParse */
+#endif /* argparser_cpp__8c26fbe7712048ea9f54d80ab26f1864 */

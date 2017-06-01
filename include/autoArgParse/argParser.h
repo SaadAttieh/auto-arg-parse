@@ -280,4 +280,9 @@ class ArgParser : public ComplexFlag {
                            const std::string& programName) const;
 };
 }
+
+#if AUTOARGPARSE_HEADER_ONLY
+#include "argParser.cpp"
+#endif
+
 #endif /* AUTOARGPARSE_ARGPARSER_H_ */

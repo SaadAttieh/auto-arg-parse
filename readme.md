@@ -17,6 +17,8 @@
 ## Coming soon
 
 *  Variable number of arguments,
+*  Trigger code on successful parsing of a flag,
+*  Faster implementation of flag exclusivity
 *  More built in conversions (other number formats, file path->stream conversion, etc.)
 
 

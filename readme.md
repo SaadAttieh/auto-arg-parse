@@ -18,7 +18,6 @@
 ## Coming soon
 
 *  Variable number of arguments,
-*  Faster implementation of flag exclusivity
 *  More built in conversions (other number formats, file path->stream conversion, etc.)
 
 

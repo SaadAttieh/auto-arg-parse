@@ -25,7 +25,7 @@ auto& exclusiveSpeed = speedFlag.makeExclusiveGroup(Policy::MANDATORY);
 // no need to provide descriptions, these are self explanatory
 auto& slow = exclusiveSpeed.add<Flag>("slow", "");
 auto& medium = exclusiveSpeed.add<Flag>("medium", "");
-auto& fast = exclusiveSpeed.add<Flag>("fast", "test here");
+auto& fast = exclusiveSpeed.add<Flag>("fast", "");
 
 auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::MANDATORY,
                                             "Read the specified file.");

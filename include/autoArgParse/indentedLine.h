@@ -14,6 +14,7 @@ class IndentedLine {
         }
     }
 
+    inline void forceSingleIndent(std::ostream& os) { os << "    "; }
     friend inline std::ostream& operator<<(std::ostream& os,
                                            const IndentedLine& indent) {
         os << "\n";

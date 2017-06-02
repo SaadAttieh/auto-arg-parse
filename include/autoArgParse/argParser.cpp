@@ -111,38 +111,35 @@ AUTOARGPARSE_INLINE void FlagStore::printUsageSummary(std::ostream& os) const {
 AUTOARGPARSE_INLINE void printUsageHelp(
     const std::vector<FlagMap::iterator>& flagInsertionOrder, std::ostream& os,
     IndentedLine& lineIndent) {
-    lineIndent.indentLevel++;
-    lineIndent.forcePrintIndent(os);
     for (const auto& flagMappingIter : flagInsertionOrder) {
         auto& flagMapping = *flagMappingIter;
         if (flagMapping.second->description.size() > 0) {
+            os << lineIndent;
             os << flagMapping.first;
             flagMapping.second->printUsageSummary(os);
             os << lineIndent;
             if (flagMapping.second->policy == Policy::OPTIONAL) {
                 os << "[optional] ";
             }
-            os << flagMapping.second->description << lineIndent;
+            os << flagMapping.second->description;
             flagMapping.second->printUsageHelp(os, lineIndent);
         } else if (startsWith(flagMapping.first, unprintableString)) {
             flagMapping.second->printUsageHelp(os, lineIndent);
         }
     }
-    lineIndent.indentLevel--;
 }
 
 AUTOARGPARSE_INLINE void FlagStore::printUsageHelp(
     std::ostream& os, IndentedLine& lineIndent) const {
     lineIndent.indentLevel++;
-    lineIndent.forcePrintIndent(os);
-
     for (auto& argPtr : args) {
         if (argPtr->description.size() > 0) {
+            os << lineIndent;
             os << argPtr->name;
             if (argPtr->policy == Policy::OPTIONAL) {
                 os << " [optional]";
             }
-            std::cout << ": " << argPtr->description << lineIndent;
+            std::cout << ": " << argPtr->description;
         }
     }
     AutoArgParse::printUsageHelp(flagInsertionOrder, os, lineIndent);

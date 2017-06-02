@@ -13,7 +13,7 @@
 
 namespace AutoArgParse {
 
-AUTOARGPARSE_INLINE void ComplexFlag::parse(ArgIter& first, ArgIter& last) {
+AUTOARGPARSE_INLINE void FlagStore::parse(ArgIter& first, ArgIter& last) {
     int numberParsedMandatoryFlags = 0;
     int numberParsedMandatoryArgs = 0;
     while (first != last) {
@@ -30,25 +30,24 @@ AUTOARGPARSE_INLINE void ComplexFlag::parse(ArgIter& first, ArgIter& last) {
             break;
         }
     }
-    if (numberParsedMandatoryFlags != numberMandatoryFlags()) {
+    if (numberParsedMandatoryFlags != _numberMandatoryFlags) {
         if (first == last) {
             throw MissingMandatoryFlagException(*this);
         } else {
             throw UnexpectedArgException(*first, *this);
         }
     }
-    if (numberParsedMandatoryArgs != numberMandatoryArgs()) {
+    if (numberParsedMandatoryArgs != _numberMandatoryArgs) {
         if (first == last) {
             throw MissingMandatoryArgException(*this);
         } else {
             throw UnexpectedArgException(*first, *this);
         }
     }
-    _parsed = true;
 }
 
-AUTOARGPARSE_INLINE bool ComplexFlag::tryParseArg(ArgIter& first, ArgIter& last,
-                                                  Policy& foundArgPolicy) {
+AUTOARGPARSE_INLINE bool FlagStore::tryParseArg(ArgIter& first, ArgIter& last,
+                                                Policy& foundArgPolicy) {
     for (auto& argPtr : args) {
         if (argPtr->parsed()) {
             continue;
@@ -62,9 +61,8 @@ AUTOARGPARSE_INLINE bool ComplexFlag::tryParseArg(ArgIter& first, ArgIter& last,
     return false;
 }
 
-AUTOARGPARSE_INLINE bool ComplexFlag::tryParseFlag(ArgIter& first,
-                                                   ArgIter& last,
-                                                   Policy& foundFlagPolicy) {
+AUTOARGPARSE_INLINE bool FlagStore::tryParseFlag(ArgIter& first, ArgIter& last,
+                                                 Policy& foundFlagPolicy) {
     auto flagIter = flags.find(*first);
     if (flagIter != end(flags)) {
         if (flagIter->second->parsed()) {
@@ -106,7 +104,7 @@ AUTOARGPARSE_INLINE void printFlag(std::ostream& os, const FlagMapping& flag,
     }
 }
 
-AUTOARGPARSE_INLINE void ComplexFlag::invokePrintFlag(
+AUTOARGPARSE_INLINE void FlagStore::invokePrintFlag(
     std::ostream& os, const FlagMapping& flagMapping,
     std::unordered_set<std::string>& printed) const {
     if (printed.count(flagMapping.first)) {
@@ -130,8 +128,7 @@ AUTOARGPARSE_INLINE void ComplexFlag::invokePrintFlag(
     os << " ";
 }
 
-AUTOARGPARSE_INLINE void ComplexFlag::printUsageSummary(
-    std::ostream& os) const {
+AUTOARGPARSE_INLINE void FlagStore::printUsageSummary(std::ostream& os) const {
     std::unordered_set<std::string> printed;
     for (auto& flagMappingIter : flagInsertionOrder) {
         invokePrintFlag(os, *flagMappingIter, printed);
@@ -148,10 +145,7 @@ AUTOARGPARSE_INLINE void ComplexFlag::printUsageSummary(
     }
 }
 
-AUTOARGPARSE_INLINE void Flag::printUsageHelp(std::ostream&,
-                                              IndentedLine&) const {}
-
-AUTOARGPARSE_INLINE void ComplexFlag::printUsageHelp(
+AUTOARGPARSE_INLINE void FlagStore::printUsageHelp(
     std::ostream& os, IndentedLine& lineIndent) const {
     lineIndent.indentLevel++;
     lineIndent.forcePrintIndent(os);
@@ -201,7 +195,7 @@ AUTOARGPARSE_INLINE void ArgParser::validateArgs(const int argc,
     try {
         parse(first, last);
         if (first != last) {
-            throw UnexpectedArgException(*first, *this);
+            throw UnexpectedArgException(*first, this->getFlagStore());
         }
         numberArgsSuccessfullyParsed = std::distance(first, last) + 1;
     } catch (ParseException& e) {

@@ -40,10 +40,10 @@ class ParseToken {
 
     inline operator bool() const { return parsed(); }
 };
-
-class ComplexFlag;
+/**Forward declaration of FlagStore such that it may be a friend */
+class FlagStore;
 class ArgBase : public ParseToken {
-    friend ComplexFlag;
+    friend FlagStore;
 
    protected:
     virtual void parse(ArgIter& first, ArgIter& last) = 0;
@@ -55,19 +55,14 @@ class ArgBase : public ParseToken {
         : ParseToken(policy, description), name(name) {}
     virtual ~ArgBase() = default;
 };
-
-class Flag : public ParseToken {
-    friend ComplexFlag;
-
-   protected:
-    inline virtual void parse(ArgIter&, ArgIter&) {
-        // do nothing, this is a simple flag
-        _parsed = true;
-    }
-
+/**
+ * non templated base of flag.
+ */
+class FlagBase : public ParseToken {
    public:
+    virtual void parse(ArgIter& first, ArgIter& last) = 0;
     using ParseToken::ParseToken;
-    virtual void printUsageHelp(std::ostream&, IndentedLine&) const;
+    inline virtual void printUsageHelp(std::ostream&, IndentedLine&) const {}
     inline virtual void printUsageSummary(std::ostream&) const {}
 
     inline void printUsageHelp(std::ostream& os) const {
@@ -76,8 +71,34 @@ class Flag : public ParseToken {
     }
 };
 
+/**
+ * Represents a simple flag, does not have any nested flags or arguments.
+ */
+template <typename OnParseTrigger>
+class Flag : public FlagBase {
+    friend FlagStore;
+    OnParseTrigger parsedTrigger;
+
+   protected:
+    inline void triggerParseSuccess(const std::string& flag) {
+        parsedTrigger(flag);
+    }
+    inline virtual void parse(ArgIter& first, ArgIter&) {
+        _parsed = true;
+        triggerParseSuccess(first[-1]);
+        // we know that first always points to the element just after the most
+        // recently parsed flag
+    }
+
+   public:
+    Flag(const Policy policy, const std::string& description,
+         OnParseTrigger&& trigger)
+        : FlagBase(policy, description),
+          parsedTrigger(std::forward<OnParseTrigger>(trigger)) {}
+};
+
 typedef std::unordered_map<std::string, std::shared_ptr<bool>> ExclusiveMap;
-typedef std::unique_ptr<Flag> FlagPtr;
+typedef std::unique_ptr<FlagBase> FlagPtr;
 typedef std::unordered_map<std::string, FlagPtr> FlagMap;
 typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
 
@@ -119,93 +140,120 @@ class Arg : public ArgBase {
     T& get() { return parsedValue; }
 };
 
-class ComplexFlag : public Flag {
+template <typename OnParseTrigger>
+class ComplexFlag;
+
+/**
+ * A non templated object that can hold most of the data belonging to templated
+ * class ComplexFlag and implement some of its functions.  The purpose of this
+ * class is to allow non templated functions to be defined in the CPP file
+ * rather than having to inline the code in this file.
+ */
+class FlagStore {
+   public:
     FlagMap flags;
     std::deque<FlagMap::iterator> flagInsertionOrder;
     ExclusiveMap exclusiveFlags;
-
     ArgVector args;
-    int _numberMandatoryFlags;
-    int _numberOptionalFlags;
-    int _numberExclusiveMandatoryFlags;
-    int _numberExclusiveOptionalFlags;
-    int _numberMandatoryArgs;
-    int _numberOptionalArgs;
+    int _numberMandatoryFlags = 0;
+    int _numberOptionalFlags = 0;
+    int _numberExclusiveMandatoryFlags = 0;
+    int _numberExclusiveOptionalFlags = 1;  // must be 1
+    int _numberMandatoryArgs = 0;
+    int _numberOptionalArgs = 0;
 
     bool tryParseArg(ArgIter& first, ArgIter& last, Policy& foundArgPolicy);
     bool tryParseFlag(ArgIter& first, ArgIter& last, Policy& foundFlagPolicy);
 
-   protected:
-    virtual void parse(ArgIter& first, ArgIter& last);
-
-    void addExclusive(const std::string& flag,
-                      std::shared_ptr<bool>& sharedState) {
-        exclusiveFlags.insert(std::make_pair(flag, sharedState));
-        if (flags[flag]->policy == Policy::MANDATORY) {
-            _numberExclusiveMandatoryFlags++;
-        } else {
-            _numberExclusiveOptionalFlags++;
-        }
-    }
-
+    void parse(ArgIter& first, ArgIter& last);
     void invokePrintFlag(
         std::ostream& os,
         const std::pair<const std::string, FlagPtr>& flagMapping,
         std::unordered_set<std::string>& printed) const;
+    void printUsageSummary(std::ostream& os) const;
+    void printUsageHelp(std::ostream& os, IndentedLine& lineIndent) const;
+};
+
+template <typename OnParseTrigger>
+class ComplexFlag : public Flag<OnParseTrigger> {
+    FlagStore store;
+
+   protected:
+    virtual void parse(ArgIter& first, ArgIter& last) {
+        store.parse(first, last);
+        this->_parsed = true;
+    }
+
+    inline void addExclusive(const std::string& flag,
+                             std::shared_ptr<bool>& sharedState) {
+        store.exclusiveFlags.insert(std::make_pair(flag, sharedState));
+        if (store.flags[flag]->policy == Policy::MANDATORY) {
+            ++store._numberExclusiveMandatoryFlags;
+        } else {
+            ++store._numberExclusiveOptionalFlags;
+        }
+    }
+
+    inline const FlagStore& getFlagStore() { return store; }
 
    public:
-    ComplexFlag(const Policy policy, const std::string& description)
-        : Flag(policy, description),
-          flags(),
-          flagInsertionOrder(),
-          exclusiveFlags(),
-          args(),
-          _numberMandatoryFlags(0),
-          _numberOptionalFlags(0),
-          _numberExclusiveMandatoryFlags(0),
-          _numberExclusiveOptionalFlags(1),
-          _numberMandatoryArgs(0),
-          _numberOptionalArgs(0) {}
+    using Flag<OnParseTrigger>::Flag;
 
-    inline const ArgVector& getArgs() const { return args; }
+    inline const ArgVector& getArgs() const { return store.args; }
 
-    inline const FlagMap& getFlags() const { return flags; }
+    inline const FlagMap& getFlags() const { return store.flags; }
 
     inline const ExclusiveMap& getExclusiveFlags() const {
-        return exclusiveFlags;
+        return store.exclusiveFlags;
     }
 
     const std::deque<FlagMap::iterator>& getFlagInsertionOrder() const {
-        return flagInsertionOrder;
+        return store.flagInsertionOrder;
     }
-    inline int numberMandatoryArgs() { return _numberMandatoryArgs; }
 
-    inline int numberOptionalArgs() { return _numberOptionalArgs; }
+    inline int numberMandatoryArgs() { return store._numberMandatoryArgs; }
+
+    inline int numberOptionalArgs() { return store._numberOptionalArgs; }
 
     inline int numberMandatoryFlags() {
-        return _numberMandatoryFlags - _numberExclusiveMandatoryFlags;
+        return store._numberMandatoryFlags -
+               store._numberExclusiveMandatoryFlags;
     }
 
     inline int numberOptionalFlags() {
-        return _numberOptionalFlags - _numberExclusiveOptionalFlags;
+        return store._numberOptionalFlags - store._numberExclusiveOptionalFlags;
     }
 
-    template <typename FlagType, typename... Args>
-    typename std::enable_if<std::is_base_of<Flag, FlagType>::value,
-                            FlagType&>::type
-    add(const std::string& flag, const Args&... args) {
-        auto added = flags.insert(std::make_pair(
-            flag, std::unique_ptr<FlagType>(new FlagType(args...))));
+    template <template <class T> class FlagType, typename OnParseTriggerType>
+    typename std::enable_if<
+        std::is_base_of<FlagBase, FlagType<OnParseTriggerType>>::value,
+        FlagType<OnParseTriggerType>&>::type
+    add(const std::string& flag, const Policy policy,
+        const std::string& description, OnParseTriggerType&& trigger) {
+        auto added = store.flags.insert(std::make_pair(
+            flag,
+            std::unique_ptr<FlagBase>(new FlagType<OnParseTriggerType>(
+                policy, description, std::forward<OnParseTrigger>(trigger)))));
         if (added.first->second->policy == Policy::MANDATORY) {
-            _numberMandatoryFlags++;
+            ++store._numberMandatoryFlags;
         } else {
-            _numberOptionalFlags++;
+            ++store._numberOptionalFlags;
         }
-        flagInsertionOrder.push_back(std::move(added.first));
+        store.flagInsertionOrder.push_back(std::move(added.first));
         // get underlying raw pointer from unique pointer, used only for casting
         // purposes
-        return *(
-            static_cast<FlagType*>(flagInsertionOrder.back()->second.get()));
+        return *(static_cast<FlagType<OnParseTriggerType>*>(
+            store.flagInsertionOrder.back()->second.get()));
+    }
+
+    template <template <class T> class FlagType>
+    typename std::enable_if<
+        std::is_base_of<FlagBase, FlagType<DefaultDoNothingHandler>>::value,
+        FlagType<DefaultDoNothingHandler>&>::type
+    add(const std::string& flag, const Policy policy,
+        const std::string& description) {
+        return add<FlagType, DefaultDoNothingHandler>(
+            flag, policy, description, DefaultDoNothingHandler());
     }
 
     template <typename ArgType, typename ConverterFunc,
@@ -214,18 +262,18 @@ class ComplexFlag : public Flag {
                             Arg<ArgValueType, ConverterFunc>&>::type
     add(const std::string& name, const Policy policy,
         const std::string& description, ConverterFunc&& convert) {
-        this->args.emplace_back(
+        store.args.emplace_back(
             std::unique_ptr<Arg<ArgValueType, ConverterFunc>>(
                 new Arg<ArgValueType, ConverterFunc>(
                     name, policy, description,
                     std::forward<ConverterFunc>(convert))));
-        if (this->args.back()->policy == Policy::MANDATORY) {
-            _numberMandatoryArgs++;
+        if (store.args.back()->policy == Policy::MANDATORY) {
+            ++store._numberMandatoryArgs;
         } else {
-            _numberOptionalArgs++;
+            ++store._numberOptionalArgs;
         }
         return *(static_cast<Arg<ArgValueType, ConverterFunc>*>(
-            this->args.back().get()));
+            store.args.back().get()));
     }
 
     template <typename ArgType,
@@ -240,34 +288,41 @@ class ComplexFlag : public Flag {
 
     template <typename... Strings>
     std::shared_ptr<bool> makeExclusive(const Strings&... strings) {
-        int previousNMandatoryExclusives = _numberExclusiveMandatoryFlags;
-        int previousNOptionalExclusives = _numberExclusiveOptionalFlags;
+        int previousNMandatoryExclusives = store._numberExclusiveMandatoryFlags;
+        int previousNOptionalExclusives = store._numberExclusiveOptionalFlags;
         std::shared_ptr<bool> sharedState = std::make_shared<bool>(false);
         // code below is just to apply the same operation to every passed in arg
         int unpack[]{0, (addExclusive(strings, sharedState), 0)...};
         static_cast<void>(unpack);
-        if (_numberExclusiveMandatoryFlags != previousNMandatoryExclusives) {
-            _numberExclusiveMandatoryFlags--;
+        if (store._numberExclusiveMandatoryFlags !=
+            previousNMandatoryExclusives) {
+            --store._numberExclusiveMandatoryFlags;
         }
-        if (_numberExclusiveOptionalFlags != previousNOptionalExclusives) {
-            _numberExclusiveOptionalFlags--;
+        if (store._numberExclusiveOptionalFlags !=
+            previousNOptionalExclusives) {
+            --store._numberExclusiveOptionalFlags;
         }
         return sharedState;
     }
 
-    void printUsageSummary(std::ostream& os) const;
-    void printUsageHelp(std::ostream& os, IndentedLine& lineIndent) const;
-    using Flag::printUsageHelp;
+    inline void printUsageSummary(std::ostream& os) const {
+        store.printUsageSummary(os);
+    }
+    inline void printUsageHelp(std::ostream& os,
+                               IndentedLine& lineIndent) const {
+        store.printUsageHelp(os, lineIndent);
+    }
+    using Flag<OnParseTrigger>::printUsageHelp;
 };
 
-class ArgParser : public ComplexFlag {
+class ArgParser : public ComplexFlag<DefaultDoNothingHandler> {
     int numberArgsSuccessfullyParsed = 0;
 
    public:
     ArgParser()
-        : ComplexFlag(Policy::MANDATORY, ""), numberArgsSuccessfullyParsed(0) {}
+        : ComplexFlag(Policy::MANDATORY, "", DefaultDoNothingHandler()) {}
 
-    int getNumberArgsSuccessfullyParsed() const {
+    inline int getNumberArgsSuccessfullyParsed() const {
         return numberArgsSuccessfullyParsed;
     }
     void validateArgs(const int argc, const char** argv,
@@ -275,6 +330,7 @@ class ArgParser : public ComplexFlag {
 
     void printSuccessfullyParsed(std::ostream& os, const char** argv,
                                  int numberParsed) const;
+
     inline void printSuccessfullyParsed(std::ostream& os,
                                         const char** argv) const {
         printSuccessfullyParsed(os, argv, getNumberArgsSuccessfullyParsed());

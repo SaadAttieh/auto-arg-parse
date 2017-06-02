@@ -71,31 +71,31 @@ class ParseException : public std::exception {
 
 class MissingMandatoryArgException : public ParseException {
    public:
-    const ComplexFlag& complexFlag;
+    const FlagStore& flagStore;
 
-    MissingMandatoryArgException(const ComplexFlag& complexFlag)
-        : ParseException(MISSING_MANDATORY_ARG, makeErrorMessage(complexFlag)),
-          complexFlag(complexFlag) {}
-    static std::string makeErrorMessage(const ComplexFlag& complexFlag) {
+    MissingMandatoryArgException(const FlagStore& flagStore)
+        : ParseException(MISSING_MANDATORY_ARG, makeErrorMessage(flagStore)),
+          flagStore(flagStore) {}
+    static std::string makeErrorMessage(const FlagStore& flagStore) {
         std::ostringstream os;
         os << "Missing mandatory argument(s).  Valid option(s) are: ";
-        printUnParsed(os, complexFlag.getArgs());
+        printUnParsed(os, flagStore.args);
         return os.str();
     }
 };
 
 class MissingMandatoryFlagException : public ParseException {
    public:
-    const ComplexFlag& complexFlag;
+    const FlagStore& flagStore;
 
-    MissingMandatoryFlagException(const ComplexFlag& complexFlag)
-        : ParseException(MISSING_MANDATORY_FLAG, makeErrorMessage(complexFlag)),
-          complexFlag(complexFlag) {}
-    static std::string makeErrorMessage(const ComplexFlag& complexFlag) {
+    MissingMandatoryFlagException(const FlagStore& flagStore)
+        : ParseException(MISSING_MANDATORY_FLAG, makeErrorMessage(flagStore)),
+          flagStore(flagStore) {}
+    static std::string makeErrorMessage(const FlagStore& flagStore) {
         std::ostringstream os;
         os << "Missing mandatory argument(s). valid option(s) are: ";
-        printUnParsed(os, complexFlag.getFlagInsertionOrder(),
-                      complexFlag.getExclusiveFlags());
+        printUnParsed(os, flagStore.flagInsertionOrder,
+                      flagStore.exclusiveFlags);
         return os.str();
     }
 };
@@ -114,22 +114,22 @@ class RepeatedFlagException : public ParseException {
 class UnexpectedArgException : public ParseException {
    public:
     const std::string unexpectedArg;
-    const ComplexFlag& complexFlag;
+    const FlagStore& flagStore;
 
     UnexpectedArgException(std::string unexpectedArg,
-                           const ComplexFlag& complexFlag)
+                           const FlagStore& flagStore)
         : ParseException(UNEXPECTED_ARG,
-                         makeErrorMessage(unexpectedArg, complexFlag)),
+                         makeErrorMessage(unexpectedArg, flagStore)),
           unexpectedArg(std::move(unexpectedArg)),
-          complexFlag(complexFlag) {}
+          flagStore(flagStore) {}
     static std::string makeErrorMessage(const std::string& unexpectedArg,
-                                        const ComplexFlag& complexFlag) {
+                                        const FlagStore& flagStore) {
         std::ostringstream os;
         os << "Unexpected argument: " << unexpectedArg << std::endl;
         os << "Valid option(s): ";
-        printUnParsed(os, complexFlag.getFlagInsertionOrder(),
-                      complexFlag.getExclusiveFlags());
-        printUnParsed(os, complexFlag.getArgs());
+        printUnParsed(os, flagStore.flagInsertionOrder,
+                      flagStore.exclusiveFlags);
+        printUnParsed(os, flagStore.args);
         return os.str();
     }
 };
@@ -137,24 +137,24 @@ class UnexpectedArgException : public ParseException {
 class MoreThanOneExclusiveArgException : public ParseException {
    public:
     const std::string exclusiveArg;
-    const ComplexFlag& complexFlag;
+    const FlagStore& flagStore;
 
     MoreThanOneExclusiveArgException(std::string exclusiveArg,
-                                     const ComplexFlag& complexFlag)
+                                     const FlagStore& flagStore)
         : ParseException(MORE_THAN_ONE_EXCLUSIVE_ARG,
-                         makeErrorMessage(exclusiveArg, complexFlag)),
+                         makeErrorMessage(exclusiveArg, flagStore)),
           exclusiveArg(exclusiveArg),
-          complexFlag(complexFlag) {}
+          flagStore(flagStore) {}
     static std::string makeErrorMessage(const std::string& exclusiveArg,
-                                        const ComplexFlag& complexFlag) {
+                                        const FlagStore& flagStore) {
         std::ostringstream os;
         os << "The following arguments are exclusive and may not be used in "
               "conjunction: ";
-        auto mappingIter = complexFlag.getExclusiveFlags().find(exclusiveArg);
-        assert(mappingIter != std::end(complexFlag.getExclusiveFlags()));
+        auto mappingIter = flagStore.exclusiveFlags.find(exclusiveArg);
+        assert(mappingIter != std::end(flagStore.exclusiveFlags));
         auto& ptr = mappingIter->second;
         bool first = true;
-        for (auto& mapping : complexFlag.getExclusiveFlags()) {
+        for (auto& mapping : flagStore.exclusiveFlags) {
             if (mapping.second == ptr) {
                 if (first) {
                     first = false;

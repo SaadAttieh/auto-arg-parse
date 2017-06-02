@@ -20,12 +20,12 @@ auto& powerArg = powerFlag.add<Arg<int>>(
 auto& speedFlag = argParser.add<ComplexFlag>("--speed", Policy::MANDATORY,
                                              "Specify the speed.");
 
+auto& exclusiveSpeed = speedFlag.makeExclusiveGroup(Policy::MANDATORY);
 // Add three exclusive flags, fast, medium slow
 // no need to provide descriptions, these are self explanatory
-auto& slow = speedFlag.add<Flag>("slow", Policy::MANDATORY, "");
-auto& medium = speedFlag.add<Flag>("medium", Policy::MANDATORY, "");
-auto& fast = speedFlag.add<Flag>("fast", Policy::MANDATORY, "");
-auto forceExclusive = speedFlag.makeExclusive("slow", "medium", "fast");
+auto& slow = exclusiveSpeed.add<Flag>("slow", "");
+auto& medium = exclusiveSpeed.add<Flag>("medium", "");
+auto& fast = exclusiveSpeed.add<Flag>("fast", "test here");
 
 auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::MANDATORY,
                                             "Read the specified file.");

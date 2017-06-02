@@ -8,13 +8,10 @@
 #include "argParser.h"
 namespace AutoArgParse {
 template <typename FlagContainer>
-void printUnParsed(std::ostringstream& os, const FlagContainer& flags,
-                   const ExclusiveMap& exclusiveFlags) {
+void printUnParsed(std::ostringstream& os, const FlagContainer& flags) {
     bool first = true;
     for (auto& flag : flags) {
-        if (!flag->second->parsed() &&
-            !(exclusiveFlags.count(flag->first) &&
-              *exclusiveFlags.find(flag->first)->second)) {
+        if (!flag->second->parsed() && flag->second->available()) {
             if (first) {
                 os << " ";
                 first = false;
@@ -94,8 +91,7 @@ class MissingMandatoryFlagException : public ParseException {
     static std::string makeErrorMessage(const FlagStore& flagStore) {
         std::ostringstream os;
         os << "Missing mandatory argument(s). valid option(s) are: ";
-        printUnParsed(os, flagStore.flagInsertionOrder,
-                      flagStore.exclusiveFlags);
+        printUnParsed(os, flagStore.flagInsertionOrder);
         return os.str();
     }
 };
@@ -127,8 +123,7 @@ class UnexpectedArgException : public ParseException {
         std::ostringstream os;
         os << "Unexpected argument: " << unexpectedArg << std::endl;
         os << "Valid option(s): ";
-        printUnParsed(os, flagStore.flagInsertionOrder,
-                      flagStore.exclusiveFlags);
+        printUnParsed(os, flagStore.flagInsertionOrder);
         printUnParsed(os, flagStore.args);
         return os.str();
     }
@@ -136,34 +131,37 @@ class UnexpectedArgException : public ParseException {
 
 class MoreThanOneExclusiveArgException : public ParseException {
    public:
-    const std::string exclusiveArg;
-    const FlagStore& flagStore;
+    const std::string conflictingFlag1;
+    const std::string conflictingFlag2;
+    const std::vector<FlagMap::iterator>& exclusiveFlags;
 
-    MoreThanOneExclusiveArgException(std::string exclusiveArg,
-                                     const FlagStore& flagStore)
+    MoreThanOneExclusiveArgException(
+        const std::string& conflictingFlag1,
+        const std::string& conflictingFlag2,
+        const std::vector<FlagMap::iterator>& exclusiveFlags)
         : ParseException(MORE_THAN_ONE_EXCLUSIVE_ARG,
-                         makeErrorMessage(exclusiveArg, flagStore)),
-          exclusiveArg(exclusiveArg),
-          flagStore(flagStore) {}
-    static std::string makeErrorMessage(const std::string& exclusiveArg,
-                                        const FlagStore& flagStore) {
+                         makeErrorMessage(conflictingFlag1, conflictingFlag2,
+                                          exclusiveFlags)),
+          conflictingFlag1(conflictingFlag1),
+          conflictingFlag2(conflictingFlag2),
+          exclusiveFlags(exclusiveFlags) {}
+    static std::string makeErrorMessage(
+        const std::string& conflictingFlag1,
+        const std::string& conflictingFlag2,
+        const std::vector<FlagMap::iterator>& exclusiveFlags) {
         std::ostringstream os;
-        os << "The following arguments are exclusive and may not be used in "
-              "conjunction: ";
-        auto mappingIter = flagStore.exclusiveFlags.find(exclusiveArg);
-        assert(mappingIter != std::end(flagStore.exclusiveFlags));
-        auto& ptr = mappingIter->second;
+        os << "Cannot use " << conflictingFlag1 << " in conjunction with "
+           << conflictingFlag2 << ".\nThe following flags are exclusive:\n";
         bool first = true;
-        for (auto& mapping : flagStore.exclusiveFlags) {
-            if (mapping.second == ptr) {
-                if (first) {
-                    first = false;
-                } else {
-                    os << "|";
-                }
-                os << mapping.first;
+        for (const auto& flagIter : exclusiveFlags) {
+            if (first) {
+                first = false;
+            } else {
+                os << "|";
             }
+            os << flagIter->first;
         }
+        os << "\n";
         return os.str();
     }
 };

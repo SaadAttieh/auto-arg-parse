@@ -11,6 +11,7 @@ namespace AutoArgParse {
 
 class ArgParser : public ComplexFlag<DefaultDoNothingHandler> {
     int numberArgsSuccessfullyParsed = 0;
+    std::vector<std::string> stringArgs;
 
    public:
     ArgParser()

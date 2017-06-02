@@ -13,6 +13,7 @@ enum Policy { MANDATORY, OPTIONAL };
 class ParseToken {
    protected:
     bool _parsed;
+    bool _available = true;
 
    public:
     const Policy policy;  // optional or mandatory
@@ -22,6 +23,8 @@ class ParseToken {
     ParseToken(const Policy policy, const std::string& description)
         : _parsed(false), policy(policy), description(description) {}
     virtual ~ParseToken() = default;
+
+    inline bool available() { return _available; }
     /**
      * Return whether or not this parse token (arg/flag/etc.) was successfully
      * parsed.

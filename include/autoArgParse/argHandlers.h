@@ -20,12 +20,6 @@ struct DefaultDoNothingHandler {
 };
 
 /**
- *Empty object used just to cause the type to appear after a static assert.
- */
-template <typename T>
-struct Reveal {};
-
-/**
  * Default object for converting strings to types.  Cannot be instantiated, must
 be specialised.
 */

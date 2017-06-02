@@ -127,12 +127,14 @@ class ComplexFlag : public Flag<OnParseTrigger> {
         return store._numberOptionalFlags - store._numberExclusiveOptionalFlags;
     }
 
-    template <template <class T> class FlagType, typename OnParseTriggerType>
+    template <template <class T> class FlagType,
+              typename OnParseTriggerType = DefaultDoNothingHandler>
     typename std::enable_if<
         std::is_base_of<FlagBase, FlagType<OnParseTriggerType>>::value,
         FlagType<OnParseTriggerType>&>::type
     add(const std::string& flag, const Policy policy,
-        const std::string& description, OnParseTriggerType&& trigger) {
+        const std::string& description,
+        OnParseTriggerType&& trigger = DefaultDoNothingHandler()) {
         auto added = store.flags.insert(std::make_pair(
             flag,
             std::unique_ptr<FlagBase>(new FlagType<OnParseTriggerType>(
@@ -149,22 +151,14 @@ class ComplexFlag : public Flag<OnParseTrigger> {
             store.flagInsertionOrder.back()->second.get()));
     }
 
-    template <template <class T> class FlagType>
-    typename std::enable_if<
-        std::is_base_of<FlagBase, FlagType<DefaultDoNothingHandler>>::value,
-        FlagType<DefaultDoNothingHandler>&>::type
-    add(const std::string& flag, const Policy policy,
-        const std::string& description) {
-        return add<FlagType, DefaultDoNothingHandler>(
-            flag, policy, description, DefaultDoNothingHandler());
-    }
-
-    template <typename ArgType, typename ConverterFunc,
+    template <typename ArgType,
+              typename ConverterFunc =  Converter<typename ArgType::ValueType>,
               typename ArgValueType = typename ArgType::ValueType>
     typename std::enable_if<std::is_base_of<ArgBase, ArgType>::value,
                             Arg<ArgValueType, ConverterFunc>&>::type
     add(const std::string& name, const Policy policy,
-        const std::string& description, ConverterFunc&& convert) {
+        const std::string& description,
+        ConverterFunc&& convert = Converter<ArgValueType>()) {
         store.args.emplace_back(
             std::unique_ptr<Arg<ArgValueType, ConverterFunc>>(
                 new Arg<ArgValueType, ConverterFunc>(
@@ -177,16 +171,6 @@ class ComplexFlag : public Flag<OnParseTrigger> {
         }
         return *(static_cast<Arg<ArgValueType, ConverterFunc>*>(
             store.args.back().get()));
-    }
-
-    template <typename ArgType,
-              typename ArgValueType = typename ArgType::ValueType>
-    typename std::enable_if<std::is_base_of<ArgBase, ArgType>::value,
-                            Arg<ArgValueType, Converter<ArgValueType>>&>::type
-    add(const std::string& name, const Policy policy,
-        const std::string& description) {
-        return add<ArgType>(name, policy, description,
-                            AutoArgParse::Converter<ArgValueType>());
     }
 
     template <typename... Strings>

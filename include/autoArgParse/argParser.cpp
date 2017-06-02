@@ -1,5 +1,5 @@
-#ifndef AUTOARGPARSE_argpAUTOARGPARSE_argparser_cpp_
-#define argpAUTOARGPARSE_argparser_cpp_
+#ifndef AUTOARGPARSE_ARGPARSER_CPP_
+#define AUTOARGPARSE_ARGPARSER_CPP_
 
 #include "argParser.h"
 #include <stdexcept>
@@ -227,4 +227,4 @@ AUTOARGPARSE_INLINE void throwFailedArgConversionException(
 }
 
 } /* namespace AutoArgParse */
-#endif /* argpAUTOARGPARSE_argparser_cpp___8c26fbe7712048ea9f54d80ab26f1864 */
+#endif /* AUTOARGPARSE_ARGPARSER_CPP_ */

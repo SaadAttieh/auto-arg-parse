@@ -7,8 +7,10 @@ using namespace AutoArgParse;
 ArgParser argParser;
 
 // Let's add an optional flag -p for power
-auto& powerFlag =
-    argParser.add<ComplexFlag>("-p", Policy::OPTIONAL, "Specify power output.");
+//also attach a trigger which prints a message if -p is detected
+auto& powerFlag = argParser.add<ComplexFlag>(
+    "-p", Policy::OPTIONAL, "Specify power output.",
+    [](const std::string&) { std::cout << "Triggered power flag\n"; });
 
 // give -p a mandatory argument, an integer. Typesafe conversion will be used
 auto& powerArg = powerFlag.add<Arg<int>>(
@@ -27,7 +29,7 @@ auto& slow = exclusiveSpeed.add<Flag>("slow", "");
 auto& medium = exclusiveSpeed.add<Flag>("medium", "");
 auto& fast = exclusiveSpeed.add<Flag>("fast", "");
 
-auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::MANDATORY,
+auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
                                             "Read the specified file.");
 auto& file = fileFlag.add<Arg<std::fstream>>(
     "file_path", Policy::MANDATORY, "Path to an existing file.",

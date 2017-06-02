@@ -12,12 +12,12 @@
 * Type safe, (built in and  user defined) conversions from string input to required type,
 *  Add constraints to arguments,
 *  Make a set of flags exclusive,
+*  Automatically trigger code on successful parsing of a flag or argument,
 
 
 ## Coming soon
 
 *  Variable number of arguments,
-*  Trigger code on successful parsing of a flag,
 *  Faster implementation of flag exclusivity
 *  More built in conversions (other number formats, file path->stream conversion, etc.)
 
@@ -47,6 +47,7 @@ int main(const int argc, const char** argv) {
 If all flags and args are validated, proceed as normal, otherwise,an error is printed with the usage information (see below).
 
 ## Mandatory flag
+
 ### Code:
 ```c++
 // Let's Add a mandatory flag speed
@@ -81,6 +82,26 @@ okay, -p is optional
 $./testProg  -p
 Okay, -p is optional and has been used
 ```
+
+## Trigger code when flag is detected:
+### Code:
+```c++
+// Let's add an optional flag -p for power
+//also attach a trigger which prints a message if -p is detected
+auto& powerFlag = argParser.add<ComplexFlag>(
+    "-p", Policy::OPTIONAL, "Specify power output.",
+    [](const std::string&) { std::cout << "Triggered power flag\n"; });
+```
+
+### Output:
+```
+$./testProg 
+<no_output>
+
+$./testProg  -p
+Triggered power flag
+```
+
 
 ## Nesting, flags may themselves take flags and arguments
 Give -p a mandatory integer argument, type safe conversion from string to int will automatically be used.
@@ -144,12 +165,12 @@ Expected value to be between 0(inclusive) and 50(inclusive).
 auto& speedFlag = argParser.add<ComplexFlag>("--speed", Policy::MANDATORY,
                                              "Specify the speed.");
 
+auto& exclusiveSpeed = speedFlag.makeExclusiveGroup(Policy::MANDATORY);
 // Add three exclusive flags, fast, medium slow
 // no need to provide descriptions, these are self explanatory
-auto& slow = speedFlag.add<Flag>("slow", Policy::MANDATORY, "");
-auto& medium = speedFlag.add<Flag>("medium", Policy::MANDATORY, "");
-auto& fast = speedFlag.add<Flag>("fast", Policy::MANDATORY, "");
-auto forceExclusive = speedFlag.makeExclusive("slow", "medium", "fast");
+auto& slow = exclusiveSpeed.add<Flag>("slow", "");
+auto& medium = exclusiveSpeed.add<Flag>("medium", "");
+auto& fast = exclusiveSpeed.add<Flag>("fast", "");
 ```
 
 ### Output:
@@ -168,7 +189,7 @@ Successfully parsed:  ./testProg --speed
 ### Code:
 ```
 
-auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::MANDATORY,
+auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
                                             "Read the specified file.");
 //passing a lambda function which validates the argument.
 auto& file = fileFlag.add<Arg<std::fstream>>(
@@ -215,9 +236,15 @@ Arguments:
             
 ```
 
-## Testing optional flags after validation:
+## Testing flag status after validation:
+
+*  Recommended, use code triggers where possible, they will be automatically run if a flag and all its sub flags are successfully parsed.  No need to list out long chains of if/else blocks.
+*  Attach code triggers to arg objects by chaining user defined constraints.  Constraints can act like code triggers as they run arbitrary code (see chaining and user defined constraints below).
+*  Alternatively, All flags and arguments are implicitly convertible to bool (true=parsed, false otherwise).  For example, you can test if an optional flag `"-p"` has been provided by querying its flag object `if (powerFlag)`.
+*  Retrieve the value given to an argument by calling the member function `arg.get()`.
+*  Retrieve the value used for an exclusive group by calling `exclusiveGroup.parsedValue()`.
+
 ### Code:
-All flags and arguments are implicitly convertible to bool (true=parsed, false otherwise).  This can be used to test whether an optional flag has been parsed.
 ```c++
 int main(const int argc, const char** argv) {
     argParser.validateArgs(argc, argv);
@@ -225,11 +252,15 @@ int main(const int argc, const char** argv) {
     //     successfully parsed
     // otherwise, testing flags is easy
 
+
     if (powerFlag) {
         int power = powerArg.get();
         // already converted to integer
         cout << "Accepted power output of " << power << " W" << endl;
     }
+    //either get the string flag itself using:
+    //exclusiveSpeed.parsedValue()
+    //or test each flag object individually 
     if (slow) {
         cout << "Running slowly." << endl;
     } else if (medium) {
@@ -237,7 +268,8 @@ int main(const int argc, const char** argv) {
     } else if (fast) {
         cout << "running fast." << endl;
     }
-}
+    //also allowed to do
+    }
 
 ```
 

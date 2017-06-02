@@ -235,6 +235,11 @@ class ExclusiveFlagGroup : public FlagBase {
     virtual inline bool isExclusiveGroup() { return true; }
 
     virtual std::vector<FlagMap::iterator>& getFlags() { return flags; }
+/**indevelopment
+    template <template <class T> class FlagType, typename... StringFlags>
+    auto with(StringFlags&&... flags)  -> decltype(){
+        return std::tie(add<FlagType>(flags,"")...);
+    }*/
 };
 
 template <typename T>

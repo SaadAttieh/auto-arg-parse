@@ -11,6 +11,10 @@ template <typename FlagContainer>
 void printUnParsed(std::ostringstream& os, const FlagContainer& flags) {
     bool first = true;
     for (auto& flag : flags) {
+        if (flag->second->isExclusiveGroup()) {
+            printUnParsed(os, flag->second->getFlags());
+            continue;
+        }
         if (!flag->second->parsed() && flag->second->available()) {
             if (first) {
                 os << " ";

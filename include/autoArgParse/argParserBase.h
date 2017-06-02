@@ -1,7 +1,9 @@
 #ifndef AUTOARGPARSE_ARGPARSERBASE_H_
 #define AUTOARGPARSE_ARGPARSERBASE_H_
 #include <iostream>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include "indentedLine.h"
 namespace AutoArgParse {
@@ -24,14 +26,15 @@ class ParseToken {
         : _parsed(false), policy(policy), description(description) {}
     virtual ~ParseToken() = default;
 
-    inline bool available() { return _available; }
     /**
-     * Return whether or not this parse token (arg/flag/etc.) was successfully
-     * parsed.
-     */
+ * Return whether or not this parse token (arg/flag/etc.) was successfully
+ * parsed.
+ */
     inline bool parsed() const { return _parsed; }
 
     inline operator bool() const { return parsed(); }
+
+    inline bool available() { return _available; }
 };
 
 /**Forward declaration of FlagStore such that it may be a friend */
@@ -64,6 +67,15 @@ class FlagBase : public ParseToken {
         IndentedLine lineIndent(0);
         printUsageHelp(os, lineIndent);
     }
+    typedef std::unique_ptr<FlagBase> FlagPtr;
+    typedef std::unordered_map<std::string, FlagPtr> FlagMap;
+    typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
+    virtual inline bool isExclusiveGroup() { return false; }
+
+    virtual std::vector<FlagMap::iterator>& getFlags() { abort(); }
 };
+typedef std::unique_ptr<FlagBase> FlagPtr;
+typedef std::unordered_map<std::string, FlagPtr> FlagMap;
+typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
 }
 #endif /* AUTOARGPARSE_ARGPARSERBASE_H_ */

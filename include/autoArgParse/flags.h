@@ -39,10 +39,6 @@ class Flag : public FlagBase {
           parsedTrigger(std::forward<OnParseTrigger>(trigger)) {}
 };
 
-typedef std::unique_ptr<FlagBase> FlagPtr;
-typedef std::unordered_map<std::string, FlagPtr> FlagMap;
-typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
-
 void printUsageHelp(const std::vector<FlagMap::iterator>& flagInsertionOrder,
                     std::ostream& os, IndentedLine& lineIndent);
 
@@ -218,6 +214,7 @@ class ExclusiveFlagGroup : public FlagBase {
                                                       flags);
             }
             this->_parsed = true;
+            this->_available = false;
             this->_parsedValue = &flag;
             trigger(flag);
         };
@@ -235,6 +232,9 @@ class ExclusiveFlagGroup : public FlagBase {
         return *(static_cast<FlagType<OnParseTriggerType>*>(
             flags.back()->second.get()));
     }
+    virtual inline bool isExclusiveGroup() { return true; }
+
+    virtual std::vector<FlagMap::iterator>& getFlags() { return flags; }
 };
 
 template <typename T>

@@ -12,10 +12,6 @@
 #endif
 
 namespace AutoArgParse {
-inline bool startsWith(const std::string& s, const std::string& t) {
-    return s.compare(0, t.length(), t) == 0;
-}
-
 AUTOARGPARSE_INLINE void FlagStore::parse(ArgIter& first, ArgIter& last) {
     int numberParsedMandatoryFlags = 0;
     int numberParsedMandatoryArgs = 0;
@@ -88,7 +84,7 @@ AUTOARGPARSE_INLINE void FlagStore::printUsageSummary(std::ostream& os) const {
         if (flagMappingIter->second->policy == Policy::OPTIONAL) {
             os << "[";
         }
-        if (!startsWith(flagMappingIter->first, unprintableString)) {
+        if (!flagMappingIter->second->isExclusiveGroup()) {
             os << flagMappingIter->first;
         }
         flagMappingIter->second->printUsageSummary(os);
@@ -123,7 +119,7 @@ AUTOARGPARSE_INLINE void printUsageHelp(
             }
             os << flagMapping.second->description;
             flagMapping.second->printUsageHelp(os, lineIndent);
-        } else if (startsWith(flagMapping.first, unprintableString)) {
+        } else if (flagMapping.second->isExclusiveGroup()) {
             flagMapping.second->printUsageHelp(os, lineIndent);
         }
     }

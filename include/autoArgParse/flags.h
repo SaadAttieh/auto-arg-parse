@@ -218,23 +218,39 @@ class ExclusiveFlagGroup : public FlagBase {
         }
     };
 
+    /**
+     * Wrapper around OnParseTriggers, insures exclusivity before  allowing a
+     * successful parse
+     */
+    template <typename OnParseTriggerType>
+    struct ExclusiveWrapper {
+        ExclusiveFlagGroup<OnParseFunc>* parentGroup;
+        OnParseTriggerType onParseSuccess;
+        ExclusiveWrapper(ExclusiveFlagGroup<OnParseFunc>* parentGroup,
+                         OnParseTriggerType&& onParseSuccess)
+            : parentGroup(parentGroup), onParseSuccess(onParseSuccess) {}
+
+        void operator()(const std::string& flag) {
+            if (parentGroup->_parsed) {
+                throwMoreThanOneExclusiveArgException(
+                    parentGroup->parsedValue(), flag, parentGroup->flags);
+            }
+            parentGroup->_parsed = true;
+            parentGroup->_available = false;
+            parentGroup->_parsedValue = &flag;
+            onParseSuccess(flag);
+        }
+    };
+
     template <template <class T> class FlagType,
               typename OnParseTriggerType = DefaultDoNothingHandler>
-    FlagType<OnParseTriggerType>& add(
+    FlagType<ExclusiveWrapper<OnParseTriggerType>>& add(
         const std::string& flag, const std::string& description,
         OnParseTriggerType&& trigger = DefaultDoNothingHandler()) {
-        auto onParseTrigger = [this, trigger](const std::string& flag) {
-            if (this->_parsed) {
-                throwMoreThanOneExclusiveArgException(this->parsedValue(), flag,
-                                                      flags);
-            }
-            this->_parsed = true;
-            this->_available = false;
-            this->_parsedValue = &flag;
-            trigger(flag);
-        };
+        typedef ExclusiveWrapper<OnParseTriggerType> ExclusiveEnforcer;
         auto& flagObj = parentFlag.template add<FlagType>(
-            flag, policy, description, std::move(onParseTrigger));
+            flag, policy, description,
+            ExclusiveEnforcer(this, std::forward<OnParseTriggerType>(trigger)));
         flags.push_back(std::move(parentFlag.store.flagInsertionOrder.back()));
         parentFlag.store.flagInsertionOrder.pop_back();
         if (flags.size() > 1) {
@@ -244,7 +260,7 @@ class ExclusiveFlagGroup : public FlagBase {
                 --parentFlag.store._numberOptionalFlags;
             }
         }
-        return *(static_cast<FlagType<OnParseTriggerType>*>(
+        return *(static_cast<FlagType<ExclusiveEnforcer>*>(
             flags.back()->second.get()));
     }
     virtual inline bool isExclusiveGroup() { return true; }

@@ -16,7 +16,7 @@ struct ErrorMessage : public std::exception {
  */
 struct DefaultDoNothingHandler {
     template <typename... T>
-    inline void operator()(const T&... args) const {}
+    inline void operator()(const T&...) const {}
 };
 
 /**

@@ -112,7 +112,9 @@ class ComplexFlag : public Flag<OnParseTrigger> {
 
     inline const ArgVector& getArgs() const { return store.args; }
 
-    inline const FlagMap& getFlags() const { return store.flags; }
+    inline const std::vector<FlagMap::iterator>& getFlags() const {
+        return store.flagInsertionOrder;
+    }
 
     const std::deque<FlagMap::iterator>& getFlagInsertionOrder() const {
         return store.flagInsertionOrder;
@@ -260,12 +262,13 @@ class ExclusiveFlagGroup : public FlagBase {
                 --parentFlag.store._numberOptionalFlags;
             }
         }
-        return *(static_cast<FlagType<ExclusiveEnforcer>*>(
-            flags.back()->second.get()));
+        return flagObj;
     }
     virtual inline bool isExclusiveGroup() { return true; }
 
-    virtual std::vector<FlagMap::iterator>& getFlags() { return flags; }
+    virtual const std::vector<FlagMap::iterator>& getFlags() const {
+        return flags;
+    }
     /**indevelopment
         template <template <class T> class FlagType, typename... StringFlags>
         auto with(StringFlags&&... flags)  -> decltype(){

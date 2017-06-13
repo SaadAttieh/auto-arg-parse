@@ -13,6 +13,22 @@
 #include "argParserBase.h"
 
 namespace AutoArgParse {
+// some constants
+static const char* alphanumericSymbols =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+static const size_t alphanumericSymbolsLength = strlen(alphanumericSymbols);
+static const int RANDOM_STRING_LENGTH = 10;
+inline std::string generateRandomString(size_t length) {
+    auto generator = [&]() {
+        return alphanumericSymbols[rand() % alphanumericSymbolsLength];
+    };
+    std::string result;
+    result.reserve(length);
+    generate_n(back_inserter(result), length, generator);
+    return result;
+}
+static const std::string RANDOM_STRING =
+    generateRandomString(RANDOM_STRING_LENGTH);
 
 /**
  * Represents a simple flag, does not have any nested flags or arguments.
@@ -37,6 +53,7 @@ class Flag : public FlagBase {
          OnParseTrigger&& trigger)
         : FlagBase(policy, description),
           parsedTrigger(std::forward<OnParseTrigger>(trigger)) {}
+    virtual ~Flag() = default;
 };
 
 void printUsageHelp(const std::vector<FlagMap::iterator>& flagInsertionOrder,
@@ -70,8 +87,6 @@ class FlagStore {
 void throwMoreThanOneExclusiveArgException(
     const std::string& conflictingFlag1, const std::string& conflictingFlag2,
     const std::vector<FlagMap::iterator>& exclusiveFlags);
-
-static const std::string unprintableString("\0\0\0", 3);
 
 template <typename T>
 class ExclusiveFlagGroup;
@@ -235,18 +250,18 @@ class ExclusiveFlagGroup : public FlagBase {
     virtual inline bool isExclusiveGroup() { return true; }
 
     virtual std::vector<FlagMap::iterator>& getFlags() { return flags; }
-/**indevelopment
-    template <template <class T> class FlagType, typename... StringFlags>
-    auto with(StringFlags&&... flags)  -> decltype(){
-        return std::tie(add<FlagType>(flags,"")...);
-    }*/
+    /**indevelopment
+        template <template <class T> class FlagType, typename... StringFlags>
+        auto with(StringFlags&&... flags)  -> decltype(){
+            return std::tie(add<FlagType>(flags,"")...);
+        }*/
 };
 
 template <typename T>
 inline ExclusiveFlagGroup<T>& ComplexFlag<T>::makeExclusiveGroup(
     Policy policy) {
     auto flagIter = store.flags.insert(std::make_pair(
-        unprintableString + std::to_string(store.flags.size()),
+        std::to_string(store.flags.size()) + RANDOM_STRING,
         std::unique_ptr<FlagBase>(new ExclusiveFlagGroup<T>(*this, policy))));
     store.flagInsertionOrder.push_back(std::move(flagIter.first));
     return *(static_cast<ExclusiveFlagGroup<T>*>(

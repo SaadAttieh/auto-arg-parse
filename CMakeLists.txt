@@ -6,4 +6,7 @@ project (AutoArgParse
          LANGUAGES CXX)
 
 add_subdirectory (src)
-add_subdirectory (example)
+
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    add_subdirectory (example)
+endif()

@@ -4,6 +4,7 @@
 #ifndef AUTOARGPARSE_ARGHANDLERS_H_
 #define AUTOARGPARSE_ARGHANDLERS_H_
 #include <string>
+#include <utility>
 namespace AutoArgParse {
 struct ErrorMessage : public std::exception {
     const std::string message;

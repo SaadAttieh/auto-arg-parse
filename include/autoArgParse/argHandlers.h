@@ -4,6 +4,7 @@
 #ifndef AUTOARGPARSE_ARGHANDLERS_H_
 #define AUTOARGPARSE_ARGHANDLERS_H_
 #include <string>
+#include <tuple>
 #include <utility>
 namespace AutoArgParse {
 struct ErrorMessage : public std::exception {
@@ -119,6 +120,6 @@ class IntRange {
         }
     }
 };
-}
+}  // namespace AutoArgParse
 
 #endif /* AUTOARGPARSE_ARGHANDLERS_H_ */

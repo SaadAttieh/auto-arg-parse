@@ -1,6 +1,7 @@
 
 #ifndef AUTOARGPARSE_FLAGS_H_
 #define AUTOARGPARSE_FLAGS_H_
+#include <algorithm>
 #include <cstring>
 #include <deque>
 #include <iostream>
@@ -25,7 +26,7 @@ inline std::string generateRandomString(size_t length) {
     };
     std::string result;
     result.reserve(length);
-    generate_n(back_inserter(result), length, generator);
+    std::generate_n(back_inserter(result), length, generator);
     return result;
 }
 static const std::string RANDOM_STRING =
@@ -287,5 +288,5 @@ inline ExclusiveFlagGroup<T>& ComplexFlag<T>::makeExclusiveGroup(
     return *(static_cast<ExclusiveFlagGroup<T>*>(
         store.flagInsertionOrder.back()->second.get()));
 }
-}
+}  // namespace AutoArgParse
 #endif /* AUTOARGPARSE_FLAGS_H_ */

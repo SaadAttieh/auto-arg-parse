@@ -1,6 +1,7 @@
 
 #ifndef AUTOARGPARSE_FLAGS_H_
 #define AUTOARGPARSE_FLAGS_H_
+#include <cstring>
 #include <deque>
 #include <iostream>
 #include <memory>

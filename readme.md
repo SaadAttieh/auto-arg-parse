@@ -193,11 +193,13 @@ auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
 //passing a lambda function which validates the argument.
 auto& file = fileFlag.add<Arg<std::fstream>>(
     "file_path", Policy::MANDATORY, "Path to an existing file.",
-    [](const std::string& arg, std::fstream& stream) {
+    [](const std::string& arg) {
+        std::fstream stream;
         stream.open(arg);
         if (!stream.good()) {
             throw ErrorMessage("File " + arg + " does not exist.");
         }
+        return std::move(stream);
     });
 
 ```
@@ -276,13 +278,12 @@ int main(const int argc, const char** argv) {
 # Implementation FAQ:
 
 
-## Speed:
-The aim has been to make the validation of correct input fast.  Sometimes, this leads to slower error reporting. However, since finding an error usually leads to the program exiting, preference is given to speeding up the validating of valid input.  It is however still very doubtful that any speed differences will ever be noticed.
+## Is auto-arg-parse fast?
+The aim has been to make the validation of *correct* input fast.  Sometimes, this leads to slower error reporting on incorrect input. However, since finding an error usually leads to the program exiting, preference is given to speeding up the validating of valid input.  It is however still very doubtful that any speed differences will ever be noticed.
 
-## Memory management:
+## What is the scope/life time of an argument or flag?
 
 *  As long as the `ArgParser` object is in scope, all flags and arguments shall remain constructed.  
-* You should __never__ need to copy or copy-initialise a flag or argument object. Only maintain references where possible.  e.g. `auto& arg = ...` not `auto arg = ...`  
 * You need not maintain a reference to a `flag`, `ComplexFlag` or  `Arg` object unless you wish to query its status. e.g. 
 *     Test if an optional flag has been used,
 *     Retrieve the value given as an argument.
@@ -291,15 +292,15 @@ The aim has been to make the validation of correct input fast.  Sometimes, this 
     auto& someArg = argParser.add<ComplexFlag>("--flag", Policy::OPTIONAL, "")
     .add<Arg<int>>("someArg", Policy::MANDATORY, "");
     ```
+* You should __never__ need to copy or copy-initialise a flag or argument object. Only maintain references where possible.  e.g. `auto& arg = ...` not `auto arg = ...`  
     Since `someArg` is a mandatory argument on `--flag`, you can test if a value for `someArg` exists by testing, `if (someArg)`.  You need not test the flag itself, though that is of course up to you.
 
-## Constructors and  Copy Constructors:
-The argument types must be default constructible.  It need not be copyable.  If you are getting an error due to a missing copy constructor, first check that you are not copy-initialising arguments (`auto& arg = ...` not `auto arg = ...`).  If you are still getting an error, please report it as a bug.
+## Are there restrictions on the type of an argument `arg<T>`?
+Here, `T` must be default constructible and movable.  It need not be copyable.  If you are getting an error due to a missing copy constructor, first check that you are not copy-initialising arguments (you should be doing `auto& arg = ...` not `auto arg = ...`).  If you are still getting an error, please report it as a bug.
 
-## Built-in and User Defined Converters:
+## How do I parse an argument of a type other than string or int:
 
 So far, parsing args of type `Arg<int>` or `Arg<std::string>` require no further work, they will trigger built-in converters.
-
 
 However, if you wish to parse an argument of an unsupported type, you have two options:
 
@@ -316,11 +317,13 @@ Here is an example of parsing a  string file path into an fstream  object, repor
 ```c++
 auto& file = argParser.add<Arg<std::fstream>>(
     "file_path", Policy::MANDATORY, "Path to an existing file.",
-    [](const std::string& arg, std::fstream& stream) {
+    [](const std::string& arg) {
+        std::fstream stream;
         stream.open(arg);
         if (!stream.good()) {
             throw ErrorMessage("File " + arg + " does not exist.");
         }
+        return stream;
     });
 ```
 
@@ -337,12 +340,12 @@ template <> struct Converter<NewType> {
 }
 ```
 
-## Built-in and User Defined Constraints:
+## How do I constrain the allowed values of an argument?
 
 
-User defined constraints are specified exactly in the same method as converters (see above).  This allows constraints to be tested before or after parsing the string into the argument type, which ever is more efficient/convenient.  A satisfied constraint need not perform any additional actions But they may report an error via the same method as Converters `throw ErrorMessage("error message here");`.  So far, the `IntRange` constraint has been provided as a built-in (see end of section on chaining), more are coming soon.
+User defined constraints are specified exactly in the same method as converters (see above).  You pass the value through if it is allowed or throw ErrorMessage if not.  This allows constraints to be tested before or after parsing the given string into the argument type, which ever is more efficient/convenient.  So far, the `IntRange` constraint has been provided as a built-in (see end of section on chaining), more are coming soon.
 
-## Chaining multiple converters or constraints together:
+## How do I add multiple constraints to an argument?
 
 You may wish to apply multiple constraints to an argument, or perhaps apply a conversion followed by a constraint.  You can do this by calling the `Auto'ArgParse::chain(...)` function.  Below is an example where we use the built in conversion to int followed by a lambda function to verify that the int is within the correct range.
 

@@ -9,7 +9,7 @@ namespace AutoArgParse {
 void throwFailedArgConversionException(const std::string& name,
                                        const std::string& additionalExpl);
 
-template <typename T, typename ConverterFunc = DefaultDoNothingHandler>
+template <typename T, typename ConverterFunc = FakeDoNothingConverter<T>>
 class Arg : public ArgBase {
    public:
     typedef T ValueType;
@@ -22,7 +22,7 @@ class Arg : public ArgBase {
     virtual inline void parse(ArgIter& first, ArgIter&) {
         _parsed = false;
         try {
-            convert(*first, parsedValue);
+            parsedValue = std::move(convert(*first));
             ++first;
             _parsed = true;
         } catch (ErrorMessage& e) {

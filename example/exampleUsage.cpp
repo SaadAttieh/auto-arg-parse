@@ -33,12 +33,15 @@ auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
                                             "Read the specified file.");
 auto& file = fileFlag.add<Arg<std::fstream>>(
     "file_path", Policy::MANDATORY, "Path to an existing file.",
-    [](const std::string& arg, std::fstream& stream) {
+    [](const std::string& arg) {
+        std::fstream stream;
         stream.open(arg);
         if (!stream.good()) {
             throw ErrorMessage("File " + arg + " does not exist.");
         }
+        return std::move(stream);
     });
+
 int main(const int argc, const char** argv) {
     argParser.validateArgs(argc, argv);
     // the above will print an error and exit if not all arguments were

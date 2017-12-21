@@ -11,14 +11,14 @@ struct ErrorMessage : public std::exception {
     const std::string message;
     ErrorMessage(const std::string& message) : message(message) {}
 };
-/**
- *abstract empty object that supports any function interface, used only as
- *default values to
- *templates
- */
-struct DefaultDoNothingHandler {
-    template <typename... T>
-    inline void operator()(const T&...) const {}
+
+/** a fake converter object, should never be called, used only to assist with
+meta programming. */ template <typename T>
+struct FakeDoNothingConverter {
+    template <typename... Args>
+    T operator()(const Args&...) const {
+        abort();
+    }
 };
 
 /**
@@ -30,17 +30,15 @@ struct Converter {};
 
 template <>
 struct Converter<std::string> {
-    inline void operator()(const std::string& stringArgToParse,
-                           std::string& parsedString) const {
-        parsedString = stringArgToParse;
+    inline std::string operator()(const std::string& stringArgToParse) const {
+        return stringArgToParse;
     }
 };
 
 template <>
 struct Converter<int> {
-    inline void operator()(const std::string& stringArgToParse,
-                           int& parsedInt) const {
-        parsedInt = 0;
+    inline int operator()(const std::string& stringArgToParse) const {
+        int parsedInt = 0;
         bool negated = false;
         auto stringIter = stringArgToParse.begin();
         if (*stringIter == '-') {
@@ -60,12 +58,32 @@ struct Converter<int> {
         if (negated) {
             parsedInt = -parsedInt;
         }
+        return parsedInt;
     }
 };
 
-/**
- * Default constraint on arguments, i.e. no constraint.
- */
+/** helper functions for ConverterChain class below */
+
+template <
+    std::size_t I = 0, typename T, typename... ConverterChain,
+    typename std::enable_if<I == sizeof...(ConverterChain), int>::type = 0>
+inline auto runChain(T&& converted, std::tuple<ConverterChain...>&)
+    -> decltype(std::forward<T>(converted)) {
+    return std::forward<T>(converted);
+}
+
+template <std::size_t I = 0, typename T, typename... ConverterChain,
+          typename std::enable_if<I<sizeof...(ConverterChain), int>::type =
+                                      0> inline auto
+              runChain(T&& parsingValue,
+                       std::tuple<ConverterChain...>& converterChain)
+                  ->decltype(runChain<I + 1>(std::get<I>(converterChain)(
+                                                 std::forward<T>(parsingValue)),
+                                             converterChain)) {
+    return runChain<I + 1>(
+        std::get<I>(converterChain)(std::forward<T>(parsingValue)),
+        converterChain);
+}
 
 /**
  * Class for chaining multiple converterstogether, allowing multiple
@@ -79,16 +97,11 @@ class Chain {
     Chain(ConverterChain&&... converterChainIn)
         : converterChain(std::forward<ConverterChain>(converterChainIn)...) {}
 
-    template <std::size_t I = 0, typename T>
-    inline typename std::enable_if<I == sizeof...(ConverterChain), void>::type
-    operator()(const std::string&, T&) {}
-
-    template <std::size_t I = 0, typename T>
-        inline typename std::enable_if <
-        I<sizeof...(ConverterChain), void>::type operator()(
-            const std::string& stringToParse, T& parsedValue) {
-        std::get<I>(converterChain)(stringToParse, parsedValue);
-        operator()<I + 1>(stringToParse, parsedValue);
+    template <typename T>
+    inline auto operator()(T&& parsingValue) -> decltype(
+        runChain<0>(std::forward<T>(parsingValue),
+                    std::declval<std::tuple<ConverterChain...>&>())) {
+        return runChain<0>(std::forward<T>(parsingValue), converterChain);
     }
 };
 
@@ -96,6 +109,7 @@ template <typename... Converters>
 Chain<Converters...> chain(Converters&&... converters) {
     return Chain<Converters...>(std::forward<Converters>(converters)...);
 }
+
 /**
  * Integer range constraint
  */
@@ -108,7 +122,7 @@ class IntRange {
           max(max),
           minInclusive(minInclusive),
           maxInclusive(maxInclusive) {}
-    void operator()(const std::string&, int parsedValue) const {
+    int operator()(int parsedValue) const {
         int testMin = (minInclusive) ? min : min + 1;
         int testMax = (maxInclusive) ? max : max - 1;
         if (parsedValue < testMin || parsedValue > testMax) {
@@ -118,6 +132,7 @@ class IntRange {
                 std::to_string(max) +
                 ((maxInclusive) ? "(inclusive)" : "(exclusive)") + ".");
         }
+        return parsedValue;
     }
 };
 }  // namespace AutoArgParse

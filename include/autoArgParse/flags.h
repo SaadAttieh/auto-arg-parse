@@ -15,6 +15,11 @@
 #include "argParserBase.h"
 
 namespace AutoArgParse {
+struct DoNothingTrigger {
+    template <typename... Args>
+    void operator()(const Args&...) {}
+};
+
 // some constants
 static const char* alphanumericSymbols =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
@@ -132,13 +137,14 @@ class ComplexFlag : public Flag<OnParseTrigger> {
 
     ExclusiveFlagGroup<OnParseTrigger>& makeExclusiveGroup(Policy);
     template <template <class T> class FlagType,
-              typename OnParseTriggerType = DefaultDoNothingHandler>
+              typename OnParseTriggerType =
+                  DoNothingTrigger>  // bool means nothing here
     typename std::enable_if<
         std::is_base_of<FlagBase, FlagType<OnParseTriggerType>>::value,
         FlagType<OnParseTriggerType>&>::type
     add(const std::string& flag, const Policy policy,
         const std::string& description,
-        OnParseTriggerType&& trigger = DefaultDoNothingHandler()) {
+        OnParseTriggerType&& trigger = DoNothingTrigger()) {
         auto added = store.flags.insert(std::make_pair(
             flag, std::unique_ptr<FlagBase>(new FlagType<OnParseTriggerType>(
                       policy, description,
@@ -247,10 +253,10 @@ class ExclusiveFlagGroup : public FlagBase {
     };
 
     template <template <class T> class FlagType,
-              typename OnParseTriggerType = DefaultDoNothingHandler>
+              typename OnParseTriggerType = DoNothingTrigger>
     FlagType<ExclusiveWrapper<OnParseTriggerType>>& add(
         const std::string& flag, const std::string& description,
-        OnParseTriggerType&& trigger = DefaultDoNothingHandler()) {
+        OnParseTriggerType&& trigger = DoNothingTrigger()) {
         typedef ExclusiveWrapper<OnParseTriggerType> ExclusiveEnforcer;
         auto& flagObj = parentFlag.template add<FlagType>(
             flag, policy, description,

@@ -9,13 +9,12 @@
 
 namespace AutoArgParse {
 
-class ArgParser : public ComplexFlag<DefaultDoNothingHandler> {
+class ArgParser : public ComplexFlag<DoNothingTrigger> {
     int numberArgsSuccessfullyParsed = 0;
     std::vector<std::string> stringArgs;
 
    public:
-    ArgParser()
-        : ComplexFlag(Policy::MANDATORY, "", DefaultDoNothingHandler()) {}
+    ArgParser() : ComplexFlag(Policy::MANDATORY, "", DoNothingTrigger()) {}
 
     inline int getNumberArgsSuccessfullyParsed() const {
         return numberArgsSuccessfullyParsed;

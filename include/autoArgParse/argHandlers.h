@@ -61,53 +61,56 @@ struct Converter<int> {
         return parsedInt;
     }
 };
+/*helper classes for the chain function, a function that composes multiple
+ * functions together*/
+namespace detail {
 
 /** helper functions for ConverterChain class below */
-
-template <
-    std::size_t I = 0, typename T, typename... ConverterChain,
-    typename std::enable_if<I == sizeof...(ConverterChain), int>::type = 0>
-inline auto runChain(T&& converted, std::tuple<ConverterChain...>&)
-    -> decltype(std::forward<T>(converted)) {
-    return std::forward<T>(converted);
-}
-
-template <std::size_t I = 0, typename T, typename... ConverterChain,
-          typename std::enable_if<I<sizeof...(ConverterChain), int>::type =
-                                      0> inline auto
-              runChain(T&& parsingValue,
-                       std::tuple<ConverterChain...>& converterChain)
-                  ->decltype(runChain<I + 1>(std::get<I>(converterChain)(
-                                                 std::forward<T>(parsingValue)),
-                                             converterChain)) {
-    return runChain<I + 1>(
-        std::get<I>(converterChain)(std::forward<T>(parsingValue)),
-        converterChain);
-}
-
-/**
- * Class for chaining multiple converterstogether, allowing multiple
- * converters or constraints to be attached to one arg.
- */
-template <typename... ConverterChain>
-class Chain {
-    std::tuple<ConverterChain...> converterChain;
+template <typename Func1, typename Func2>
+class Composed {
+    Func1 func1;
+    Func2 func2;
 
    public:
-    Chain(ConverterChain&&... converterChainIn)
-        : converterChain(std::forward<ConverterChain>(converterChainIn)...) {}
-
+    Composed(Func1&& func1, Func2&& func2)
+        : func1(std::forward<Func1>(func1)),
+          func2(std::forward<Func2>(func2)) {}
     template <typename T>
-    inline auto operator()(T&& parsingValue) -> decltype(
-        runChain<0>(std::forward<T>(parsingValue),
-                    std::declval<std::tuple<ConverterChain...>&>())) {
-        return runChain<0>(std::forward<T>(parsingValue), converterChain);
+    inline auto operator()(T&& arg)
+        -> decltype(func2(func1(std::forward<T>(arg)))) {
+        return func2(func1(std::forward<T>(arg)));
     }
 };
+template <typename Func1, typename Func2>
+inline Composed<Func1, Func2> composed(Func1&& func1, Func2&& func2) {
+    return Composed<Func1, Func2>(std::forward<Func1>(func1),
+                                  std::forward<Func2>(func2));
+}
 
-template <typename... Converters>
-Chain<Converters...> chain(Converters&&... converters) {
-    return Chain<Converters...>(std::forward<Converters>(converters)...);
+template <typename... Funcs>
+struct ChainType;
+
+template <typename Func1, typename Func2>
+struct ChainType<Func1, Func2> {
+    typedef Composed<Func1, Func2> type;
+};
+
+template <typename Func1, typename Func2, typename... Funcs>
+struct ChainType<Func1, Func2, Funcs...> {
+    typedef Composed<Func1, typename ChainType<Func2, Funcs...>::type> type;
+};
+}  // namespace detail
+
+template <typename Func>
+inline auto chain(Func&& func) -> decltype(std::forward<Func>(func)) {
+    return std::forward<Func>(func);
+}
+
+template <typename Func, typename... Funcs>
+inline typename detail::ChainType<Func, Funcs...>::type chain(
+    Func&& func, Funcs&&... funcs) {
+    return detail::composed(std::forward<Func>(func),
+                            chain(std::forward<Funcs>(funcs)...));
 }
 
 /**

@@ -8,15 +8,9 @@ set (CXX_FEATURES_USED cxx_auto_type
                        cxx_generalized_initializers
                        cxx_variadic_templates)
 
-add_library (autoArgParse STATIC ${PROJECT_SOURCE_DIR}/include/autoArgParse/argParser.cpp)
-target_compile_features (autoArgParse PUBLIC ${CXX_FEATURES_USED})
-target_include_directories (autoArgParse PUBLIC
+add_library (autoArgParse INTERFACE)
+target_include_directories (autoArgParse INTERFACE
                             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                             $<INSTALL_INTERFACE:include>)
-
-add_library (autoArgParse-header-only INTERFACE)
-target_include_directories (autoArgParse-header-only INTERFACE
-                            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                            $<INSTALL_INTERFACE:include>)
-target_compile_features (autoArgParse-header-only INTERFACE ${CXX_FEATURES_USED})
-target_compile_definitions (autoArgParse-header-only INTERFACE AUTOARGPARSE_HEADER_ONLY=1)
+target_compile_features (autoArgParse INTERFACE ${CXX_FEATURES_USED})
+target_compile_definitions (autoArgParse INTERFACE AUTOARGPARSE_HEADER_ONLY=1)

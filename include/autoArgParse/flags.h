@@ -123,7 +123,7 @@ class ComplexFlag : public Flag<OnParseTrigger> {
         return store.flagInsertionOrder;
     }
 
-    const std::deque<FlagMap::iterator>& getFlagInsertionOrder() const {
+    const std::vector<FlagMap::iterator>& getFlagInsertionOrder() const {
         return store.flagInsertionOrder;
     }
 

@@ -11,6 +11,6 @@ set (CXX_FEATURES_USED cxx_auto_type
 add_library (autoArgParse INTERFACE)
 target_include_directories (autoArgParse INTERFACE
                             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                            $<INSTALL_INTERFACE:include>)
+                            $<INSTALL_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
 target_compile_features (autoArgParse INTERFACE ${CXX_FEATURES_USED})
 target_compile_definitions (autoArgParse INTERFACE AUTOARGPARSE_HEADER_ONLY=1)

@@ -22,5 +22,5 @@ class IndentedLine {
         return os;
     }
 };
-}
+}  // namespace AutoArgParse
 #endif /* AUTOARGPARSE_INDENTEDLINE_H_ */

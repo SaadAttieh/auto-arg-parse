@@ -32,7 +32,7 @@ class ArgParser : public ComplexFlag<DoNothingTrigger> {
     void printAllUsageInfo(std::ostream& os,
                            const std::string& programName) const;
 };
-}
+}  // namespace AutoArgParse
 
 #if AUTOARGPARSE_HEADER_ONLY
 #include "argParser.cpp"

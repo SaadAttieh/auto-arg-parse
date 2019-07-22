@@ -3,6 +3,7 @@
 
 #ifndef AUTOARGPARSE_ARGHANDLERS_H_
 #define AUTOARGPARSE_ARGHANDLERS_H_
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -13,7 +14,8 @@ struct ErrorMessage : public std::exception {
 };
 
 /** a fake converter object, should never be called, used only to assist with
-meta programming. */ template <typename T>
+meta programming. */
+template <typename T>
 struct FakeDoNothingConverter {
     template <typename... Args>
     T operator()(const Args&...) const {
@@ -22,11 +24,40 @@ struct FakeDoNothingConverter {
 };
 
 /**
- * Default object for converting strings to types.  Cannot be instantiated, must
-be specialised.
-*/
+ * Default object for converting strings to types.  Defaults to using
+ * `istringstream` and the `>>` operator. can be specialised to use custom
+ * parser.
+ */
 template <typename T>
-struct Converter {};
+struct Converter {
+    inline T operator()(const std::string& stringArgToParse) const {
+        T value;
+        std::istringstream is(stringArgToParse);
+        bool success(is >> value);
+        if (!success) {
+            throw ErrorMessage(makeErrorMessage());
+        }
+        return value;
+    }
+
+    // allow custom error messages for integral, float and unsigned types
+    static inline std::string makeErrorMessage() {
+        std::ostringstream os;
+        if (std::is_integral<T>::value) {
+            os << "Could not interpret argument as integer";
+        } else if (std::is_floating_point<T>::value) {
+            os << "Could not interpret argument as number";
+        } else {
+            os << "Could not parse argument";
+        }
+        if (std::is_unsigned<T>::value) {
+            os << " greater or equal to 0.";
+        } else {
+            os << ".";
+        }
+        return os.str();
+    }
+};
 
 template <>
 struct Converter<std::string> {
@@ -35,32 +66,6 @@ struct Converter<std::string> {
     }
 };
 
-template <>
-struct Converter<int> {
-    inline int operator()(const std::string& stringArgToParse) const {
-        int parsedInt = 0;
-        bool negated = false;
-        auto stringIter = stringArgToParse.begin();
-        if (*stringIter == '-') {
-            negated = true;
-            ++stringIter;
-        }
-        while (stringIter != stringArgToParse.end() && *stringIter >= '0' &&
-               *stringIter <= '9') {
-            parsedInt = (parsedInt * 10) + (*stringIter - '0');
-            ++stringIter;
-        }
-        if (stringIter != stringArgToParse.end()) {
-            throw AutoArgParse::ErrorMessage("Could not interpret \"" +
-                                             stringArgToParse +
-                                             "\" as an integer.");
-        }
-        if (negated) {
-            parsedInt = -parsedInt;
-        }
-        return parsedInt;
-    }
-};
 /*helper classes for the chain function, a function that composes multiple
  * functions together*/
 namespace detail {

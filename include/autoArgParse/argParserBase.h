@@ -27,9 +27,9 @@ class ParseToken {
     virtual ~ParseToken() = default;
 
     /**
- * Return whether or not this parse token (arg/flag/etc.) was successfully
- * parsed.
- */
+     * Return whether or not this parse token (arg/flag/etc.) was successfully
+     * parsed.
+     */
     inline bool parsed() const { return _parsed; }
 
     inline operator bool() const { return parsed(); }
@@ -77,5 +77,5 @@ class FlagBase : public ParseToken {
 typedef std::unique_ptr<FlagBase> FlagPtr;
 typedef std::unordered_map<std::string, FlagPtr> FlagMap;
 typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
-}
+}  // namespace AutoArgParse
 #endif /* AUTOARGPARSE_ARGPARSERBASE_H_ */

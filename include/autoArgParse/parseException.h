@@ -186,5 +186,5 @@ class FailedArgConversionException : public ParseException {
                "\n";
     }
 };
-}
+}  // namespace AutoArgParse
 #endif /* AUTOARGPARSE_PARSEEXCEPTION_H_ */

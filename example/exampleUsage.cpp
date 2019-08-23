@@ -7,7 +7,7 @@ using namespace AutoArgParse;
 ArgParser argParser;
 
 // Let's add an optional flag -p for power
-//also attach a trigger which prints a message if -p is detected
+// also attach a trigger which prints a message if -p is detected
 auto& powerFlag = argParser.add<ComplexFlag>(
     "-p", Policy::OPTIONAL, "Specify power output.",
     [](const std::string&) { std::cout << "Triggered power flag\n"; });
@@ -29,17 +29,27 @@ auto& slow = exclusiveSpeed.add<Flag>("slow", "");
 auto& medium = exclusiveSpeed.add<Flag>("medium", "");
 auto& fast = exclusiveSpeed.add<Flag>("fast", "");
 
-auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
-                                            "Read the specified file.");
-auto& file = fileFlag.add<Arg<std::fstream>>(
+// first demonstrating automatic parsing of file
+auto& file1Flag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
+                                             "Read the specified file.");
+auto& file1 = file1Flag.add<Arg<std::ifstream>>("file_path", Policy::MANDATORY,
+                                                "Path to an existing file.");
+
+// now with custm checkso
+auto& file2Flag =
+    argParser.add<ComplexFlag>("--file2", Policy::OPTIONAL,
+                               "Read the specified file with custom checking.");
+
+auto& file2 = file2Flag.add<Arg<std::fstream>>(
     "file_path", Policy::MANDATORY, "Path to an existing file.",
     [](const std::string& arg) {
         std::fstream stream;
         stream.open(arg);
+        // custom checks, here we will just do good()
         if (!stream.good()) {
-            throw ErrorMessage("File " + arg + " does not exist.");
+            throw ErrorMessage("custom checks of file failed.");
         }
-        return std::move(stream);
+        return stream;
     });
 
 int main(const int argc, const char** argv) {

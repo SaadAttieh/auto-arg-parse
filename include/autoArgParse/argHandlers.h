@@ -3,6 +3,7 @@
 
 #ifndef AUTOARGPARSE_ARGHANDLERS_H_
 #define AUTOARGPARSE_ARGHANDLERS_H_
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -63,6 +64,30 @@ template <>
 struct Converter<std::string> {
     inline std::string operator()(const std::string& stringArgToParse) const {
         return stringArgToParse;
+    }
+};
+
+template <>
+struct Converter<std::ifstream> {
+    inline std::ifstream operator()(const std::string& stringArgToParse) const {
+        std::ifstream inFile(stringArgToParse);
+        if (!inFile.good()) {
+            throw ErrorMessage("Could not open file " + stringArgToParse +
+                               " for reading.");
+        }
+        return inFile;
+    }
+};
+
+template <>
+struct Converter<std::ofstream> {
+    inline std::ofstream operator()(const std::string& stringArgToParse) const {
+        std::ofstream outFile(stringArgToParse);
+        if (!outFile.good()) {
+            throw ErrorMessage("Could not open file " + stringArgToParse +
+                               " for writing.");
+        }
+        return outFile;
     }
 };
 

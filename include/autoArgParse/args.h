@@ -41,6 +41,6 @@ class Arg : public ArgBase {
 
     T& get() { return parsedValue; }
 };
-}
+}  // namespace AutoArgParse
 
 #endif /* AUTOARGPARSE_ARGS_H_ */

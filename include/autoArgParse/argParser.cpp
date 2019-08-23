@@ -163,9 +163,9 @@ AUTOARGPARSE_INLINE void ArgParser::validateArgs(const int argc,
         if (first != last) {
             throw UnexpectedArgException(*first, this->getFlagStore());
         }
-        numberArgsSuccessfullyParsed = std::distance(first, last) + 1;
+        numberArgsSuccessfullyParsed = std::distance(begin(stringArgs), first) + 1;
     } catch (ParseException& e) {
-        numberArgsSuccessfullyParsed = std::distance(first, last) + 1;
+        numberArgsSuccessfullyParsed = std::distance(begin(stringArgs), first) + 1;
         if (!handleError) {
             throw;
         }

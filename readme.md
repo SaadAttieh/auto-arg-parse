@@ -185,13 +185,14 @@ Successfully parsed:  ./testProg --speed
 ```
 
 ## Add user defined constraint to argument
+Here we put constraints on  a file path before converting to an `ifstream`.   Note however that this is only  for demonstration purposes.  This is already  automatically done for `ifstream` and  `ofstream`. 
 ### Code:
 ```
 
 auto& fileFlag = argParser.add<ComplexFlag>("--file", Policy::OPTIONAL,
                                             "Read the specified file.");
 //passing a lambda function which validates the argument.
-auto& file = fileFlag.add<Arg<std::fstream>>(
+auto& file = fileFlag.add<Arg<std::ifstream>>(
     "file_path", Policy::MANDATORY, "Path to an existing file.",
     [](const std::string& arg) {
         std::fstream stream;

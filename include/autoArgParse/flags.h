@@ -274,7 +274,9 @@ class ExclusiveFlagGroup : public FlagBase {
     }
     virtual inline bool isExclusiveGroup() { return true; }
 
-    virtual const std::deque<std::string>& getFlags() const { return flags; }
+    virtual const std::deque<std::string>& getFlagInsertionOrder() const {
+        return flags;
+    }
 
     /**indevelopment
         template <template <class T> class FlagType, typename... StringFlags>

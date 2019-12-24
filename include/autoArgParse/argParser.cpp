@@ -180,10 +180,6 @@ AUTOARGPARSE_INLINE void ArgParser::validateArgs(const int argc,
     using std::begin;
 
     using std::end;
-    if (helpFlag) {
-        // help flag would have been the first thing added, move it to the end
-        store.rotateLeft();
-    }
     auto first = begin(stringArgs);
     auto last = end(stringArgs);
     try {
@@ -213,7 +209,12 @@ AUTOARGPARSE_INLINE void ArgParser::validateArgs(const int argc,
 }
 
 AUTOARGPARSE_INLINE void ArgParser::printAllUsageInfo(
-    std::ostream& os, const std::string& programName) const {
+    std::ostream& os, const std::string& programName) {
+    if (helpFlag && firstTimePrinting) {
+        firstTimePrinting = false;
+        // help flag would have been the first thing added, move it to the end.
+        store.rotateLeft();
+    }
     os << "Usage: " << programName;
     printUsageSummary(os);
     os << "\n\nArguments:\n";
@@ -230,6 +231,9 @@ AUTOARGPARSE_INLINE void ArgParser::printAllUsageInfo(
             continue;
         }
         os << pg.getName() << "  -- " << pg.getDescription() << std::endl;
+    }
+    if (helpFlag) {
+        os << "--help prints this message.";
     }
 }
 

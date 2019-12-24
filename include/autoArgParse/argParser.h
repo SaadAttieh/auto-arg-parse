@@ -69,6 +69,7 @@ class ArgParser : public ComplexFlag<DoNothingTrigger> {
     std::vector<std::string> stringArgs;
     std::deque<PrintGroup> printGroups;
     ComplexFlag<HelpFlagTrigger>* helpFlag = NULL;
+    bool firstTimePrinting = true;
 
    public:
     ArgParser(bool addHelpFlag = true);
@@ -87,8 +88,7 @@ class ArgParser : public ComplexFlag<DoNothingTrigger> {
                                         const char** argv) const {
         printSuccessfullyParsed(os, argv, getNumberArgsSuccessfullyParsed());
     }
-    void printAllUsageInfo(std::ostream& os,
-                           const std::string& programName) const;
+    void printAllUsageInfo(std::ostream& os, const std::string& programName);
 
     template <template <class T> class FlagType,
               typename OnParseTriggerType =

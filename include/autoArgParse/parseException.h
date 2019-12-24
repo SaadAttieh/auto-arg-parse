@@ -7,26 +7,29 @@
 #include <string>
 #include "argParser.h"
 namespace AutoArgParse {
-template <typename FlagContainer>
-void printUnParsed(std::ostringstream& os, const FlagContainer& flags) {
+
+void printUnParsed(std::ostringstream& os,
+                   const std::deque<std::string>& flagInsertionOrder,
+                   const FlagMap& flags) {
     bool first = true;
-    for (auto& flag : flags) {
-        if (flag->second->isExclusiveGroup()) {
-            printUnParsed(os, flag->second->getFlags());
+    for (auto& flag : flagInsertionOrder) {
+        auto& flagObj = flags.at(flag);
+        if (flagObj->isExclusiveGroup()) {
+            printUnParsed(os, flagObj->getFlagInsertionOrder(), flags);
             continue;
         }
-        if (!flag->second->parsed() && flag->second->available()) {
+        if (!flagObj->parsed() && flagObj->available()) {
             if (first) {
                 os << " ";
                 first = false;
             } else {
                 os << ", ";
             }
-            if (flag->second->policy == Policy::OPTIONAL) {
+            if (flagObj->policy == Policy::OPTIONAL) {
                 os << "[";
             }
-            os << flag->first;
-            if (flag->second->policy == Policy::OPTIONAL) {
+            os << flag;
+            if (flagObj->policy == Policy::OPTIONAL) {
                 os << "]";
             }
         }
@@ -95,7 +98,7 @@ class MissingMandatoryFlagException : public ParseException {
     static std::string makeErrorMessage(const FlagStore& flagStore) {
         std::ostringstream os;
         os << "Missing mandatory argument(s). valid option(s) are: ";
-        printUnParsed(os, flagStore.flagInsertionOrder);
+        printUnParsed(os, flagStore.flagInsertionOrder, flagStore.flags);
         return os.str();
     }
 };
@@ -127,7 +130,7 @@ class UnexpectedArgException : public ParseException {
         std::ostringstream os;
         os << "Unexpected argument: " << unexpectedArg << std::endl;
         os << "Valid option(s): ";
-        printUnParsed(os, flagStore.flagInsertionOrder);
+        printUnParsed(os, flagStore.flagInsertionOrder, flagStore.flags);
         printUnParsed(os, flagStore.args);
         return os.str();
     }
@@ -137,12 +140,12 @@ class MoreThanOneExclusiveArgException : public ParseException {
    public:
     const std::string conflictingFlag1;
     const std::string conflictingFlag2;
-    const std::vector<FlagMap::iterator>& exclusiveFlags;
+    const std::deque<std::string>& exclusiveFlags;
 
     MoreThanOneExclusiveArgException(
         const std::string& conflictingFlag1,
         const std::string& conflictingFlag2,
-        const std::vector<FlagMap::iterator>& exclusiveFlags)
+        const std::deque<std::string>& exclusiveFlags)
         : ParseException(MORE_THAN_ONE_EXCLUSIVE_ARG,
                          makeErrorMessage(conflictingFlag1, conflictingFlag2,
                                           exclusiveFlags)),
@@ -152,18 +155,18 @@ class MoreThanOneExclusiveArgException : public ParseException {
     static std::string makeErrorMessage(
         const std::string& conflictingFlag1,
         const std::string& conflictingFlag2,
-        const std::vector<FlagMap::iterator>& exclusiveFlags) {
+        const std::deque<std::string>& exclusiveFlags) {
         std::ostringstream os;
         os << "Cannot use " << conflictingFlag1 << " in conjunction with "
            << conflictingFlag2 << ".\nThe following flags are exclusive:\n";
         bool first = true;
-        for (const auto& flagIter : exclusiveFlags) {
+        for (const auto& flag : exclusiveFlags) {
             if (first) {
                 first = false;
             } else {
                 os << "|";
             }
-            os << flagIter->first;
+            os << flag;
         }
         os << "\n";
         return os.str();

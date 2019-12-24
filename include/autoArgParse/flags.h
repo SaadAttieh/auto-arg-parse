@@ -16,8 +16,7 @@
 
 namespace AutoArgParse {
 struct DoNothingTrigger {
-    template <typename... Args>
-    void operator()(const Args&...) {}
+    void operator()(const std::string&) {}
 };
 
 // some constants
@@ -63,8 +62,9 @@ class Flag : public FlagBase {
     virtual ~Flag() = default;
 };
 
-void printUsageHelp(const std::vector<FlagMap::iterator>& flagInsertionOrder,
-                    std::ostream& os, IndentedLine& lineIndent);
+void printUsageHelp(const std::deque<std::string>& flagInsertionOrder,
+                    const FlagMap& flags, std::ostream& os,
+                    IndentedLine& lineIndent);
 
 /**
  * A non templated object that can hold most of the data belonging to templated
@@ -75,7 +75,7 @@ void printUsageHelp(const std::vector<FlagMap::iterator>& flagInsertionOrder,
 class FlagStore {
    public:
     FlagMap flags;
-    std::vector<FlagMap::iterator> flagInsertionOrder;
+    std::deque<std::string> flagInsertionOrder;
     ArgVector args;
     int _numberMandatoryFlags = 0;
     int _numberOptionalFlags = 0;
@@ -89,11 +89,12 @@ class FlagStore {
     void printUsageSummary(std::ostream& os) const;
     virtual void printUsageHelp(std::ostream& os,
                                 IndentedLine& lineIndent) const;
+    void rotateLeft();
 };
 
 void throwMoreThanOneExclusiveArgException(
     const std::string& conflictingFlag1, const std::string& conflictingFlag2,
-    const std::vector<FlagMap::iterator>& exclusiveFlags);
+    const std::deque<std::string>& exclusiveFlags);
 
 template <typename T>
 class ExclusiveFlagGroup;
@@ -102,9 +103,9 @@ template <typename OnParseTrigger>
 class ComplexFlag : public Flag<OnParseTrigger> {
     friend class ExclusiveFlagGroup<OnParseTrigger>;
 
+   protected:
     FlagStore store;
 
-   protected:
     virtual void parse(ArgIter& first, ArgIter& last) {
         int distance = (int)std::distance(first, last);
         store.parse(first, last);
@@ -119,11 +120,8 @@ class ComplexFlag : public Flag<OnParseTrigger> {
 
     inline const ArgVector& getArgs() const { return store.args; }
 
-    inline const std::vector<FlagMap::iterator>& getFlags() const {
-        return store.flagInsertionOrder;
-    }
-
-    const std::vector<FlagMap::iterator>& getFlagInsertionOrder() const {
+    const FlagMap& getFlagMap() const { return store.flags; }
+    const std::deque<std::string>& getFlagInsertionOrder() const {
         return store.flagInsertionOrder;
     }
 
@@ -154,11 +152,11 @@ class ComplexFlag : public Flag<OnParseTrigger> {
         } else {
             ++store._numberOptionalFlags;
         }
-        store.flagInsertionOrder.push_back(std::move(added.first));
+        store.flagInsertionOrder.emplace_back(flag);
         // get underlying raw pointer from unique pointer, used only for casting
         // purposes
         return *(static_cast<FlagType<OnParseTriggerType>*>(
-            store.flagInsertionOrder.back()->second.get()));
+            added.first->second.get()));
     }
 
     template <typename ArgType,
@@ -195,7 +193,7 @@ class ComplexFlag : public Flag<OnParseTrigger> {
 template <typename OnParseFunc>
 class ExclusiveFlagGroup : public FlagBase {
     ComplexFlag<OnParseFunc>& parentFlag;
-    std::vector<FlagMap::iterator> flags;
+    std::deque<std::string> flags;
     const std::string* _parsedValue;
 
    public:
@@ -210,21 +208,23 @@ class ExclusiveFlagGroup : public FlagBase {
 
     inline virtual void printUsageHelp(std::ostream& os,
                                        IndentedLine& lineIndent) const {
-        AutoArgParse::printUsageHelp(flags, os, lineIndent);
+        AutoArgParse::printUsageHelp(flags, parentFlag.getFlagMap(), os,
+                                     lineIndent);
     }
     inline virtual void printUsageSummary(std::ostream& os) const {
         if (flags.empty()) {
             return;
         }
         bool first = true;
-        for (const auto& flagIter : flags) {
+        for (const auto& flag : flags) {
+            auto& flagObj = parentFlag.getFlagMap().at(flag);
             if (first) {
                 first = false;
             } else {
                 os << "|";
             }
-            os << flagIter->first;
-            flagIter->second->printUsageSummary(os);
+            os << flag;
+            flagObj->printUsageSummary(os);
         }
     };
 
@@ -274,9 +274,8 @@ class ExclusiveFlagGroup : public FlagBase {
     }
     virtual inline bool isExclusiveGroup() { return true; }
 
-    virtual const std::vector<FlagMap::iterator>& getFlags() const {
-        return flags;
-    }
+    virtual const std::deque<std::string>& getFlags() const { return flags; }
+
     /**indevelopment
         template <template <class T> class FlagType, typename... StringFlags>
         auto with(StringFlags&&... flags)  -> decltype(){
@@ -287,12 +286,12 @@ class ExclusiveFlagGroup : public FlagBase {
 template <typename T>
 inline ExclusiveFlagGroup<T>& ComplexFlag<T>::makeExclusiveGroup(
     Policy policy) {
+    std::string randomName = std::to_string(store.flags.size()) + RANDOM_STRING;
     auto flagIter = store.flags.insert(std::make_pair(
-        std::to_string(store.flags.size()) + RANDOM_STRING,
+        randomName,
         std::unique_ptr<FlagBase>(new ExclusiveFlagGroup<T>(*this, policy))));
-    store.flagInsertionOrder.push_back(std::move(flagIter.first));
-    return *(static_cast<ExclusiveFlagGroup<T>*>(
-        store.flagInsertionOrder.back()->second.get()));
+    store.flagInsertionOrder.push_back(randomName);
+    return *(static_cast<ExclusiveFlagGroup<T>*>(flagIter.first->second.get()));
 }
 }  // namespace AutoArgParse
 #endif /* AUTOARGPARSE_FLAGS_H_ */

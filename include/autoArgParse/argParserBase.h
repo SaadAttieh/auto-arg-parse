@@ -72,7 +72,9 @@ class FlagBase : public ParseToken {
     typedef std::vector<std::unique_ptr<ArgBase>> ArgVector;
     virtual inline bool isExclusiveGroup() { return false; }
 
-    virtual const std::vector<FlagMap::iterator>& getFlags() const { abort(); }
+    virtual const std::deque<std::string>& getFlagInsertionOrder() const {
+        abort();
+    }
 };
 typedef std::unique_ptr<FlagBase> FlagPtr;
 typedef std::unordered_map<std::string, FlagPtr> FlagMap;

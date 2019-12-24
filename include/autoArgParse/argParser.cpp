@@ -233,7 +233,7 @@ AUTOARGPARSE_INLINE void ArgParser::printAllUsageInfo(
         os << pg.getName() << "  -- " << pg.getDescription() << std::endl;
     }
     if (helpFlag) {
-        os << "--help prints this message.";
+        os << "--help prints this message.\n";
     }
 }
 

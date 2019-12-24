@@ -204,8 +204,8 @@ AUTOARGPARSE_INLINE void ArgParser::validateArgs(const int argc,
     } catch (HelpFlagTriggeredException& e) {
         if (first[-1] == std::string("--help")) {
             printAllUsageInfo(std::cout, argv[0]);
-            exit(0);
         }
+        exit(0);
     }
 }
 

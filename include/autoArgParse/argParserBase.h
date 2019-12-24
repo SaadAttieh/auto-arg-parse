@@ -1,5 +1,6 @@
 #ifndef AUTOARGPARSE_ARGPARSERBASE_H_
 #define AUTOARGPARSE_ARGPARSERBASE_H_
+#include <deque>
 #include <iostream>
 #include <memory>
 #include <string>

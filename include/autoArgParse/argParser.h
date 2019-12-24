@@ -51,6 +51,7 @@ class PrintGroup {
         ConverterFunc&& convert = Converter<ArgValueType>());
 
     void printUsageHelp(std::ostream& os) const;
+    ExclusiveFlagGroup<DoNothingTrigger>& makeExclusiveGroup(Policy);
 };
 
 class ArgParser : public ComplexFlag<DoNothingTrigger> {
@@ -147,13 +148,15 @@ typename std::enable_if<std::is_base_of<ArgBase, ArgType>::value,
 PrintGroup::add(const std::string& name, const Policy policy,
                 const std::string& description, ConverterFunc&& convert) {
     if (!isDefaultGroup) {
+        argsToPrint.emplace_back(argParser.getArgs().size());
     }
-    argsToPrint.emplace_back(argParser.getArgs().size());
-
     return static_cast<ComplexFlag<DoNothingTrigger>&>(argParser).add<ArgType>(
         name, policy, description, std::forward<ConverterFunc>(convert));
-}  // namespace AutoArgParse
+}
 
+ExclusiveFlagGroup<DoNothingTrigger>& PrintGroup::makeExclusiveGroup(Policy p) {
+    return argParser.makeExclusiveGroup(p);
+}
 inline ArgParser::ArgParser(bool addHelpFlag)
     : ComplexFlag(Policy::MANDATORY, "", DoNothingTrigger()),
       printGroups({PrintGroup(*this, "default", "", true)}) {
